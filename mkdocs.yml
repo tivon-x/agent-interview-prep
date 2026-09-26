@@ -1,0 +1,85 @@
+site_name: AI / Agent 面试复习库
+site_description: 面向 AI 应用、Agent 与后端岗位的个人面试复习资料
+site_url: https://tivon-x.github.io/agent-interview-prep/
+repo_url: https://github.com/tivon-x/agent-interview-prep
+repo_name: tivon-x/agent-interview-prep
+docs_dir: docs
+
+theme:
+  name: material
+  language: zh
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.highlight
+    - search.suggest
+    - content.code.copy
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: 切换到深色模式
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: 切换到浅色模式
+
+plugins:
+  - search:
+      lang:
+        - zh
+        - en
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.tasklist:
+      custom_checkbox: true
+
+nav:
+  - 首页: index.md
+  - 字节专项:
+      - 360题题库: byte-agent/question-bank.md
+      - 逐题解析: byte-agent/analysis.md
+      - 冲刺安排: byte-agent/review-plan.md
+  - 个人补充:
+      - 前沿技术: notes/frontier.md
+      - 项目深挖: notes/project-defense.md
+      - 后端检查表: notes/backend-checklist.md
+  - AI / Agent 资料:
+      - LLM Agent Guide: materials/llm-agent-interview-guide/README.md
+      - Agent 基础: materials/zero2agent/learn-agent-basic/index.md
+      - Agent 工程面试: materials/zero2agent/learn-agent-interview/index.md
+      - Agent Harness: materials/zero2agent/learn-deepseek-harness/index.md
+      - Hello Agents 真题: materials/hello-agents/Extra-Chapter/Extra01-面试问题总结.md
+      - Hello Agents 答案: materials/hello-agents/Extra-Chapter/Extra01-参考答案.md
+      - Context Engineering: materials/hello-agents/Extra-Chapter/Extra02-上下文工程补充知识.md
+      - AI Agent 分类题库: materials/ai-agent-interview-guide/docs/01-面试八股文/README.md
+  - 后端 / 系统设计资料:
+      - JavaGuide AI: materials/javaguide/docs/ai/README.md
+      - 计算机网络: materials/javaguide/docs/cs-basics/network/README.md
+      - 操作系统: materials/javaguide/docs/cs-basics/operating-system/README.md
+      - MySQL: materials/javaguide/docs/database/mysql/README.md
+      - Redis: materials/javaguide/docs/database/redis/README.md
+      - 分布式系统: materials/javaguide/docs/distributed-system/README.md
+      - 高可用: materials/javaguide/docs/high-availability/README.md
+      - 消息队列: materials/javaguide/docs/high-performance/message-queue/README.md
+      - System Design Primer: materials/system-design-primer/README-zh-Hans.md
+  - 资料索引: sources.md

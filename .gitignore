@@ -1,0 +1,8 @@
+site/
+output/
+.playwright-cli/
+.cache/
+.venv/
+.local-sources/
+.source-downloads/
+__pycache__/
