@@ -26,7 +26,60 @@ Step 3: 最频繁对 (low, e) → "lowe"
 ...
 ```
 
-**编码过程**：对新文本，贪心地匹配词表中最长的子词。
+**训练代码（简化版）**：输入是预先切分好的词，先按字符初始化，并在词尾加 `</w>`；每轮按词频加权统计相邻符号对，将最高频的一对合并到所有词中。
+
+```python
+from collections import Counter
+
+
+def merge_pair(symbols, pair):
+    """从左到右合并一个词中所有不重叠的目标相邻符号。"""
+    merged = []
+    i = 0  # 当前扫描到的符号位置
+    while i < len(symbols):
+        if i + 1 < len(symbols) and (symbols[i], symbols[i + 1]) == pair:
+            merged.append(symbols[i] + symbols[i + 1])  # 新符号由这两个符号拼接而成
+            i += 2  # 两个符号已合并，跳过它们
+        else:
+            merged.append(symbols[i])  # 当前符号不参与合并，原样保留
+            i += 1
+    return tuple(merged)  # 元组可作为 Counter 的键
+
+
+def train_bpe(corpus, target_vocab_size):
+    word_freq = Counter(corpus)  # 相同单词只存一份，同时保留它在语料中的出现次数
+    # 每个词拆成字符，并用 </w> 标记词尾，例如 low -> (l, o, w, </w>)
+    words = Counter({tuple(word) + ("</w>",): freq for word, freq in word_freq.items()})
+    vocab = {symbol for symbols in words for symbol in symbols}  # 初始字符词表
+    merges = []  # 按训练顺序保存合并规则，供后续分词使用
+
+    while len(vocab) < target_vocab_size:
+        pair_freq = Counter()  # 重新统计当前语料中的相邻符号对
+        for symbols, word_count in words.items():
+            for pair in zip(symbols, symbols[1:]):
+                pair_freq[pair] += word_count  # 按该词在语料中的频次加权
+        if not pair_freq:  # 没有相邻符号对时，无法继续合并
+            break
+
+        best_pair = pair_freq.most_common(1)[0][0]  # 选择频次最高的一对；并列时取先统计到的
+        merges.append(best_pair)  # 记录本轮规则及其优先级
+        merged_words = Counter()
+        for symbols, word_count in words.items():
+            # 将本轮规则应用到每个词，并累加合并后相同序列的词频
+            merged_words[merge_pair(symbols, best_pair)] += word_count
+        words = merged_words
+        vocab.add("".join(best_pair))  # 合并出的新符号加入词表
+
+    return merges, vocab, words
+
+
+merges, vocab, segmented_corpus = train_bpe(
+    ["low", "lower", "lowest"], target_vocab_size=12
+)
+print(merges[:3])  # [('l', 'o'), ('lo', 'w'), ('low', 'e')]
+```
+
+**编码过程**：新文本先按相同方式拆成字符，再按训练得到的合并规则顺序依次合并；BPE 不是直接贪心匹配词表中最长的子词。
 
 ### Q: BPE vs WordPiece vs SentencePiece
 
