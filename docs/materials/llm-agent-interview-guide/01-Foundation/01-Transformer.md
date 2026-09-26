@@ -272,7 +272,7 @@ next_logits, cache = model(
 
 ---
 
-## 3. Multi-Head Attention (MHA)
+## 3. 多头注意力及其变体
 
 ### Q: Multi-Head Attention 的原理和作用 ⭐⭐⭐⭐⭐
 
@@ -292,24 +292,226 @@ $$\text{head}_i = \text{Attention}(QW_i^Q, KW_i^K, VW_i^V)$$
 2. 不同头可以学习不同的注意力模式（语法、语义、位置等）
 3. 计算量与单头相同，但表达能力更强
 
-### Q: MHA、MQA、GQA、MLA 的区别 ⭐⭐⭐⭐
+**关键问题：KV Cache 瓶颈**
 
-| 方法 | Q 头数 | K/V 组织 | KV Cache | 代表模型 |
-|---|---:|---|---|---|
-| **MHA** | $h$ | 每个 Q 头各有一组 K/V | 大 | GPT-2、BERT |
-| **MQA** | $h$ | 所有 Q 头共享一组 K/V | 最小 | PaLM |
-| **GQA** | $h$ | 分成 $g$ 组，每组共享一组 K/V | 介于两者之间 | LLaMA-2 70B |
-| **MLA** | 多头 | 将 K/V 压缩到低维潜在表示 | 较小，取决于压缩维度 | DeepSeek-V2 |
-
-记忆方法：MHA 每头一组，MQA 全部共用，GQA 分组共用，MLA 压缩 K/V 表示。GQA 中每组含 $h/g$ 个 Q 头。
-
-**KV Cache 大小**约为 $2LTh_{kv}d_h$ 个元素，乘以数据类型字节数即可。MHA 有 $h_{kv}=h$，MQA 有 $h_{kv}=1$，GQA 介于二者之间。
-
-**MLA** 将 K/V 投影到低维潜在向量，DeepSeek-V2 缓存潜在向量和解耦 RoPE 的 Key 部分；它不是简单地把 K/V 头数设为 1。
-
-MQA、GQA、MLA 主要减少解码时 KV Cache 的占用和读写量，不会把标准全注意力的 $O(n^2)$ 计算变成线性。FlashAttention 是另一类优化，主要减少显存访问和中间存储。
+- **推理时**：自回归生成需缓存历史 K/V，避免重复计算
+- **内存占用**：$O(n \cdot h \cdot d)$，长序列时成为瓶颈（如 128K 上下文）
+- **带宽限制**：每生成一个 token 需读取全部 KV Cache，受内存带宽限制
 
 ---
+
+### MQA：多查询注意力（Multi-Query Attention）
+
+#### 核心创新
+
+**所有注意力头共享同一个 K 和 V**，只有 Q 保持多头：
+
+- $K = XW_K$（单头，维度 $d$）
+- $V = XW_V$（单头，维度 $d$）
+- $Q_i = XW_i^Q$（多头，每个维度 $d_k$）
+
+#### 代码实现对比
+
+```python
+# MHA: 每个头独立 K/V
+k = self.k_proj(x).view(B, N, self.num_heads, self.head_dim).transpose(1, 2)
+v = self.v_proj(x).view(B, N, self.num_heads, self.head_dim).transpose(1, 2)
+
+# MQA: 所有头共享 K/V（关键区别）
+k = self.k_proj(x).unsqueeze(1).expand(B, self.num_heads, N, self.head_dim)
+v = self.v_proj(x).unsqueeze(1).expand(B, self.num_heads, N, self.head_dim)
+```
+
+#### 优缺点
+
+- ✅ **KV Cache 减少 $h$ 倍**：从 $O(n \cdot h \cdot d)$ 降至 $O(n \cdot d)$
+- ✅ **推理速度显著提升**：减少内存带宽压力
+- ❌ **质量下降**：多头无法捕捉多样化关系，困惑度（Perplexity）上升
+- **代表**：Google PaLM, Falcon-40B, Qwen2.5（部分版本）
+
+---
+
+### GQA：分组查询注意力（Grouped-Query Attention）
+
+#### 核心思想
+
+**折中方案**：将 $h$ 个 Q 头分为 $g$ 组，每组共享一个 K/V（$g$ 为组数，$1 \leq g \leq h$）。
+
+- 当 $g=1$：退化为 MQA
+- 当 $g=h$：退化为 MHA
+
+#### 数学表达
+
+$$\text{head}_i = \text{Attention}(QW_i^Q, KW_{\lfloor i/g \rfloor}^K, VW_{\lfloor i/g \rfloor}^V)$$
+
+#### 代码实现（Qwen3 风格）
+
+```python
+class GroupedQueryAttention(nn.Module):
+    def __init__(self, dim, num_heads=32, num_kv_heads=8):
+        super().__init__()
+        self.num_heads = num_heads      # Q 头数（如 32）
+        self.num_kv_heads = num_kv_heads # KV 头数（如 8）
+        self.head_dim = dim // num_heads
+        
+        # Q 投影到全部头，K/V 只投影到组数
+        self.q_proj = nn.Linear(dim, num_heads * self.head_dim)
+        self.k_proj = nn.Linear(dim, num_kv_heads * self.head_dim)  # 关键：只有 8 个头
+        self.v_proj = nn.Linear(dim, num_kv_heads * self.head_dim)
+        
+    def forward(self, x):
+        B, N, C = x.shape
+        
+        # Q: [B, N, 32, head_dim] -> [B, 32, N, head_dim]
+        q = self.q_proj(x).view(B, N, self.num_heads, self.head_dim).transpose(1, 2)
+        
+        # K/V: [B, N, 8, head_dim] -> [B, 8, N, head_dim]
+        k = self.k_proj(x).view(B, N, self.num_kv_heads, self.head_dim).transpose(1, 2)
+        v = self.v_proj(x).view(B, N, self.num_kv_heads, self.head_dim).transpose(1, 2)
+        
+        # 扩展 K/V 到所有 Q 头（repeat_interleave 或 expand）
+        # 方式1：repeat_interleave（每个 KV 头复制给 4 个 Q 头）
+        k = k.repeat_interleave(self.num_heads // self.num_kv_heads, dim=1)
+        v = v.repeat_interleave(self.num_heads // self.num_kv_heads, dim=1)
+        
+        # 标准注意力计算...
+        attn = (q @ k.transpose(-2, -1)) / math.sqrt(self.head_dim)
+        output = attn @ v
+        
+        return output
+```
+
+#### 优势分析
+
+- **内存**：$O(n \cdot g \cdot d)$，如 32 头分 8 组，缓存减少 4 倍
+- **质量**：接近 MHA，显著优于 MQA
+- **硬件友好**：KV Cache 减小，适合长上下文推理
+
+**代表模型**：LLaMA-3-70B（8 KV 头），Mistral-7B（8 KV 头），**Qwen3 系列**
+
+---
+
+### MLA：多头潜在注意力（Multi-head Latent Attention）
+
+#### 核心创新（DeepSeek 独有）
+
+**不直接缓存 K/V，而是缓存低秩压缩的潜在向量（Latent Vector）**，使用时实时解压缩。
+
+#### 数学原理
+
+将 K/V 投影到低维空间 $c$（$c \ll d$），缓存 $c$ 而非完整 K/V：
+
+1. **压缩**：$c_t = W_{DKV} \cdot x_t$（$W_{DKV} \in \mathbb{R}^{d \times c}$）
+2. **解压缩 K**：$k_t = W_{UK} \cdot c_t$（$W_{UK} \in \mathbb{R}^{c \times d}$）
+3. **解压缩 V**：$v_t = W_{UV} \cdot c_t$（$W_{UV} \in \mathbb{R}^{c \times d}$）
+
+其中 $c$ 通常设为 $d/4$ 或更小（如 512 维模型压缩到 128 维）。
+
+#### 关键优势：RoPE 兼容性
+
+MLA 面临位置编码挑战（RoPE 需直接作用于 K）。DeepSeek 的解决方案：
+
+- **解耦 RoPE**：将 Q/K 分为两部分
+  - 内容部分：通过低秩压缩（无位置编码）
+  - 位置部分：独立的小维度向量应用 RoPE
+
+#### 代码概念实现（简化版）
+
+```python
+class MultiHeadLatentAttention(nn.Module):
+    def __init__(self, dim, num_heads, latent_dim=128):
+        super().__init__()
+        self.num_heads = num_heads
+        self.head_dim = dim // num_heads
+        self.latent_dim = latent_dim  # 压缩维度 c
+        
+        # 下投影矩阵（压缩）
+        self.down_proj = nn.Linear(dim, latent_dim)  # W_DKV
+        
+        # 上投影矩阵（解压缩）
+        self.up_k = nn.Linear(latent_dim, dim)       # W_UK
+        self.up_v = nn.Linear(latent_dim, dim)       # W_UV
+        
+        # 解耦 RoPE 的独立投影（DeepSeek 创新）
+        self.rope_proj = nn.Linear(dim, self.head_dim * 2)  # 单独处理位置
+        
+    def forward(self, x, cache=None):
+        B, N, C = x.shape
+        
+        # 压缩：缓存这个 latent vector 而非 K/V
+        latent = self.down_proj(x)  # [B, N, c]
+        
+        # 推理时：只缓存 latent，节省大量内存
+        if cache is not None:
+            latent = torch.cat([cache, latent], dim=1)  # 拼接历史 latent
+        
+        # 实时解压缩（计算时重建 K/V）
+        k_content = self.up_k(latent)  # [B, N, d]
+        v = self.up_v(latent)          # [B, N, d]
+        
+        # 解耦 RoPE：单独计算位置部分
+        rope_part = self.rope_proj(x)  # [B, N, head_dim*2]
+        # ... 应用 RoPE ...
+        
+        # 合并内容和位置信息
+        k = k_content + rope_k
+        
+        # 标准多头计算...
+        return output, latent  # 返回 latent 作为 cache
+```
+
+#### 性能对比（DeepSeek-V2 数据）
+
+- **KV Cache**：压缩至传统 MHA 的 **1/4**（latent_dim=512 vs d=2048）
+- **生成速度**：相比 MHA 提升 **5.76 倍**（配合其他优化）
+- **质量**：在 MMLU、C-Eval 等基准上**超越 MHA**，因低秩投影有正则化效果
+
+---
+
+### 面试高频问题与解答
+
+#### Q1: MQA 和 GQA 如何选择？
+
+**A**: 
+
+- **极致速度**（边缘设备、高并发）：选 MQA（如 Falcon-7B）
+- **平衡质量与速度**：选 GQA（$g = h/4$ 或 $h/8$ 是甜点区，如 LLaMA-3 的 8 组）
+- **小模型**（<7B）：MQA 质量损失可接受；**大模型**（>70B）：必须用 GQA 或 MLA
+
+#### Q2: MLA 为什么比 MQA/GQA 更优？
+
+**A**: 
+
+1. **压缩率更高**：低秩压缩比分组共享更激进（可压至 1/8 维度）
+2. **保留表达能力**：低秩投影相当于隐式的正则化，DeepSeek-V2 证明其质量可**超越** MHA
+3. **硬件友好**：缓存的是连续低维向量，更适合 GPU Tensor Core 的矩阵运算
+
+#### Q3: 代码实现中 GQA 的 `repeat_interleave` 和 `expand` 区别？
+
+**A**: 
+
+```python
+# repeat_interleave: 实际复制数据（内存增加）
+k = k.repeat_interleave(4, dim=1)  # [B, 8, N, d] -> [B, 32, N, d]
+
+# expand: 只是广播视图（无实际复制，省内存）
+k = k[:, :, None, :, :].expand(B, 8, 4, N, d).reshape(B, 32, N, d)
+```
+
+工业界（如 vLLM）使用 **PagedAttention** 优化 GQA 的内存布局，避免显式复制。
+
+#### Q4: 为什么 MLA 要解耦 RoPE？
+
+**A**: RoPE 是位置敏感的旋转操作，若直接应用于压缩后的 latent vector，解压缩后的 K 会丢失相对位置信息。DeepSeek 将 Q/K 分为**内容向量**（低秩压缩）和**位置向量**（独立小维度应用 RoPE），既保留位置编码能力，又实现内容压缩。
+
+### Q: MHA、MQA、GQA、MLA 的区别 ⭐⭐⭐⭐
+
+| 变体    | 全称                        | 核心思想         | KV Cache 大小              | 适用场景          | 代表模型                    |
+| ------- | --------------------------- | ---------------- | -------------------------- | ----------------- | --------------------------- |
+| **MHA** | Multi-Head Attention        | 每个头独立 Q/K/V | $O(n \cdot h \cdot d)$     | 通用，效果最佳    | 原始 Transformer, LLaMA-1/2 |
+| **MQA** | Multi-Query Attention       | 所有头共享 K/V   | $O(n \cdot d)$             | 极致推理速度      | PaLM, Falcon, Qwen2.5       |
+| **GQA** | Grouped-Query Attention     | 头分组共享 K/V   | $O(n \cdot g \cdot d)$     | 平衡效果与速度    | LLaMA-3, Qwen3, Mistral     |
+| **MLA** | Multi-head Latent Attention | 低秩压缩 KV 表示 | $O(n \cdot c)$ ($c \ll d$) | 极致压缩 + 高性能 | DeepSeek-V2/V3              |
 
 ## 4. 位置编码
 
