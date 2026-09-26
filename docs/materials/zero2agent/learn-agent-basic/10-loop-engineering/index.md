@@ -92,7 +92,7 @@ while not should_stop(state):
 
 ### 用确定性实验验证协议
 
-[Agent API Lab](../../examples/agent-api-lab/index.html) 用 Fake Provider 跑同一套循环，因此不需要 API Key，也不会受模型随机性影响。它覆盖：
+[Agent API Lab](https://onefly.top/zero2Agent/examples/agent-api-lab/index.html) 用 Fake Provider 跑同一套循环，因此不需要 API Key，也不会受模型随机性影响。它覆盖：
 
 - 单工具和同轮并行工具调用
 - 非法参数作为结构化失败回传，下一轮再修正

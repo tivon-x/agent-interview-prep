@@ -227,6 +227,6 @@ Generator: 生成方案
 
 接下来你可以进入：
 
-- [learn-langgraph](../../learn-langgraph/index.html)
+- [learn-langgraph](https://onefly.top/zero2Agent/learn-langgraph/index.html)
 
 因为当你真正开始关心状态、节点、分支和协作时，才会需要更强的系统编排能力。

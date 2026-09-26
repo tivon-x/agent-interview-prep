@@ -773,7 +773,7 @@ HTTP 200 只表示接口成功返回，不代表：
 
 ## 动手实验
 
-配套实验位于 [examples/agent-api-lab](../../examples/agent-api-lab/index.html)，建议按下面顺序运行：
+配套实验位于 [examples/agent-api-lab](https://onefly.top/zero2Agent/examples/agent-api-lab/index.html)，建议按下面顺序运行：
 
 1. 打印一次普通文本请求的脱敏输入、typed output、停止原因和 usage
 2. 跑通上面的两次请求，观察消息轨迹怎样增长
@@ -805,7 +805,7 @@ Tool Calling 是 Agent 非常关键的一步，因为它让系统从“只会说
 
 本文只建立跨厂商心智模型。OpenAI Responses、Anthropic Messages、Gemini 以及具体 SDK 的精确语法与版本差异，继续参考：
 
-- [SDK 与框架选型](../../learn-sdk-frameworks/index.html)
+- [SDK 与框架选型](https://onefly.top/zero2Agent/learn-sdk-frameworks/index.html)
 
 下一篇建议继续看：
 

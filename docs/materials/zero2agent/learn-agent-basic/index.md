@@ -107,7 +107,7 @@ eyebrow: Module 01
 
 ## 配套实验
 
-[Agent API Lab](../examples/agent-api-lab/index.html) 不需要 API Key，使用确定性 Fake Provider 展示模型请求、工具调用、结果回传、流式组装和故障注入。它还会主动破坏消息轨迹，验证删除 assistant 工具请求、错配 call ID、拍平角色或机械滑窗为什么会失败。
+[Agent API Lab](https://onefly.top/zero2Agent/examples/agent-api-lab/index.html) 不需要 API Key，使用确定性 Fake Provider 展示模型请求、工具调用、结果回传、流式组装和故障注入。它还会主动破坏消息轨迹，验证删除 assistant 工具请求、错配 call ID、拍平角色或机械滑窗为什么会失败。
 
 ```powershell
 python examples/agent-api-lab/run_lab.py --scenario parallel
@@ -129,6 +129,6 @@ python -m unittest discover -s examples/agent-api-lab/tests -v
 
 如果这一部分读完了，下一步建议进入：
 
-- [learn-langgraph](../learn-langgraph/index.html)——如何把有状态、可分支、可恢复的 Agent 系统组织起来
-- [learn-agent-training](../learn-agent-training/index.html)——SFT / RL 训练层面让模型学会做 Agent
-- [learn-agent-survey](../learn-agent-survey/index.html)——13 个主流框架的横向对比
+- [learn-langgraph](https://onefly.top/zero2Agent/learn-langgraph/index.html)——如何把有状态、可分支、可恢复的 Agent 系统组织起来
+- [learn-agent-training](https://onefly.top/zero2Agent/learn-agent-training/index.html)——SFT / RL 训练层面让模型学会做 Agent
+- [learn-agent-survey](https://onefly.top/zero2Agent/learn-agent-survey/index.html)——13 个主流框架的横向对比

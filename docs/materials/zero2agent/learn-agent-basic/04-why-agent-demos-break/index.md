@@ -184,6 +184,6 @@ Demo 和真实系统的差别，不在于“规模更大”，而在于“约束
 
 接下来你可以继续进入：
 
-- [learn-langgraph](../../learn-langgraph/index.html)
+- [learn-langgraph](https://onefly.top/zero2Agent/learn-langgraph/index.html)
 
 因为当你开始关心状态、分支、恢复和执行流时，LangGraph 这类框架的价值才会真正变得清楚。

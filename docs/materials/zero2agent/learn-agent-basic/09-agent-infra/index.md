@@ -134,7 +134,7 @@ stateDiagram-v2
 
 来自网页、文件、邮件、数据库或工具返回值的内容都应视为**不可信外部数据**，即使其中写着“system message”或“忽略之前规则”，也不能提升为指令。Harness 需要保留来源标签、把外部内容和系统指令分区，并在执行工具前重新做权限和参数验证；日志展示时还要转义控制字符，避免日志注入污染排障界面。
 
-动手验证这些边界：[模型 API 故障注入实验](../../examples/agent-api-lab/index.html)。实验会模拟限流、超时、5xx、中途断流、拒绝、截断、无效工具参数和重复工具调用，观察状态机与重试策略是否符合预期。
+动手验证这些边界：[模型 API 故障注入实验](https://onefly.top/zero2Agent/examples/agent-api-lab/index.html)。实验会模拟限流、超时、5xx、中途断流、拒绝、截断、无效工具参数和重复工具调用，观察状态机与重试策略是否符合预期。
 
 ## 六层基础设施
 
@@ -562,7 +562,7 @@ graph LR
 
 下一篇建议继续看：
 
-- [Harness 工程：从原理到实现](../../learn-agent-survey/06-harness/index.html)——亲手写一遍 Harness，再回来看 Infra 会更有体感。
+- [Harness 工程：从原理到实现](https://onefly.top/zero2Agent/learn-agent-survey/06-harness/index.html)——亲手写一遍 Harness，再回来看 Infra 会更有体感。
 
 ## 参考资料
 
