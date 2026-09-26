@@ -12,16 +12,16 @@
 
 | 序号 | 模块 | 核心内容 | 链接 |
 |------|------|----------|------|
-| 01 | **基础知识** | Transformer、Tokenization、Loss & 优化 | [📖 进入](01-Foundation/01-Transformer.md) |
-| 02 | **推理优化** | KV Cache、解码策略、量化部署 | [📖 进入](02-Inference/01-KVCache-And-Acceleration.md) |
-| 03 | **微调对齐** | PEFT/LoRA、RLHF/DPO/GRPO、指令微调 | [📖 进入](03-FineTuning/01-PEFT.md) |
-| 04 | **RAG** | 检索增强生成全流程 | [📖 进入](04-RAG/01-RAG-Complete-Guide.md) |
-| 05 | **Agent** | ReAct、Function Calling、MCP、多智能体 | [📖 进入](05-Agent/01-Agent-Complete-Guide.md) |
-| 06 | **安全评估** | 安全对齐、幻觉、评估体系 | [📖 进入](06-Safety-Evaluation/01-Safety-And-Evaluation.md) |
-| 07 | **前沿热点** | DeepSeek、MoE、推理模型、2025-2026 趋势 | [📖 进入](07-HotTopics/01-Hot-Topics-2025-2026.md) |
-| 08 | **手撕代码** | Attention、LoRA、BPE、Beam Search 等实现 | [📖 进入](08-Coding/01-Coding-Problems.md) |
-| 09 | **系统设计** | 大模型服务架构、训练系统设计 | [📖 进入](09-SystemDesign/01-System-Design.md) |
-| 10 | **大厂真题** | 字节跳动、阿里、腾讯等真实面试题 | [📖 进入](10-RealQuestions/01-ByteDance-Questions.md) |
+| 01 | **基础知识** | Transformer、Tokenization、Loss & 优化 | [📖 进入](01-Foundation/index.md) |
+| 02 | **推理优化** | KV Cache、解码策略、量化部署 | [📖 进入](02-Inference/index.md) |
+| 03 | **微调对齐** | PEFT/LoRA、RLHF/DPO/GRPO、指令微调 | [📖 进入](03-FineTuning/index.md) |
+| 04 | **RAG** | 检索增强生成全流程 | [📖 进入](04-RAG/index.md) |
+| 05 | **Agent** | ReAct、Function Calling、MCP、多智能体 | [📖 进入](05-Agent/index.md) |
+| 06 | **安全评估** | 安全对齐、幻觉、评估体系 | [📖 进入](06-Safety-Evaluation/index.md) |
+| 07 | **前沿热点** | DeepSeek、MoE、推理模型、2025-2026 趋势 | [📖 进入](07-HotTopics/index.md) |
+| 08 | **手撕代码** | Attention、LoRA、BPE、Beam Search 等实现 | [📖 进入](08-Coding/index.md) |
+| 09 | **系统设计** | 大模型服务架构、训练系统设计 | [📖 进入](09-SystemDesign/index.md) |
+| 10 | **大厂真题** | 字节跳动、阿里、腾讯等真实面试题 | [📖 进入](10-RealQuestions/index.md) |
 
 ---
 

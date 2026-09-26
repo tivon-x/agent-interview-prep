@@ -1,6 +1,7 @@
 import { defineConfig } from 'vitepress'
 
 const materials = '/materials/'
+const llmGuide = `${materials}llm-agent-interview-guide/`
 
 export default defineConfig({
   title: 'AI / Agent 面试复习库',
@@ -70,6 +71,46 @@ export default defineConfig({
           { text: '项目深挖', link: '/notes/project-defense' },
           { text: '前沿技术', link: '/notes/frontier' },
           { text: '后端检查表', link: '/notes/backend-checklist' },
+        ] },
+      ],
+      '/materials/llm-agent-interview-guide/': [
+        { text: '阅读路线', link: '/reading-path' },
+        { text: '指南总览', link: `${llmGuide}README` },
+        { text: '01 基础知识', link: `${llmGuide}01-Foundation/`, collapsed: true, items: [
+          { text: 'Transformer', link: `${llmGuide}01-Foundation/01-Transformer` },
+          { text: 'Tokenization', link: `${llmGuide}01-Foundation/02-Tokenization` },
+          { text: 'Loss 与优化', link: `${llmGuide}01-Foundation/03-Loss-And-Optimization` },
+        ] },
+        { text: '02 推理优化', link: `${llmGuide}02-Inference/`, collapsed: true, items: [
+          { text: 'KV Cache 与推理加速', link: `${llmGuide}02-Inference/01-KVCache-And-Acceleration` },
+          { text: '解码策略', link: `${llmGuide}02-Inference/02-Decoding-Strategies` },
+          { text: '量化与部署', link: `${llmGuide}02-Inference/03-Quantization-And-Deployment` },
+        ] },
+        { text: '03 微调与对齐', link: `${llmGuide}03-FineTuning/`, collapsed: true, items: [
+          { text: 'PEFT', link: `${llmGuide}03-FineTuning/01-PEFT` },
+          { text: '对齐训练', link: `${llmGuide}03-FineTuning/02-Alignment` },
+          { text: '指令微调', link: `${llmGuide}03-FineTuning/03-Instruction-Tuning` },
+        ] },
+        { text: '04 RAG', link: `${llmGuide}04-RAG/`, collapsed: true, items: [
+          { text: 'RAG 完整指南', link: `${llmGuide}04-RAG/01-RAG-Complete-Guide` },
+        ] },
+        { text: '05 Agent', link: `${llmGuide}05-Agent/`, collapsed: true, items: [
+          { text: 'Agent 完整指南', link: `${llmGuide}05-Agent/01-Agent-Complete-Guide` },
+        ] },
+        { text: '06 安全与评估', link: `${llmGuide}06-Safety-Evaluation/`, collapsed: true, items: [
+          { text: '安全与评估', link: `${llmGuide}06-Safety-Evaluation/01-Safety-And-Evaluation` },
+        ] },
+        { text: '07 前沿热点', link: `${llmGuide}07-HotTopics/`, collapsed: true, items: [
+          { text: '2025–2026 前沿热点', link: `${llmGuide}07-HotTopics/01-Hot-Topics-2025-2026` },
+        ] },
+        { text: '08 手撕代码', link: `${llmGuide}08-Coding/`, collapsed: true, items: [
+          { text: '大模型手撕代码题', link: `${llmGuide}08-Coding/01-Coding-Problems` },
+        ] },
+        { text: '09 系统设计', link: `${llmGuide}09-SystemDesign/`, collapsed: true, items: [
+          { text: '大模型系统设计', link: `${llmGuide}09-SystemDesign/01-System-Design` },
+        ] },
+        { text: '10 大厂真题', link: `${llmGuide}10-RealQuestions/`, collapsed: true, items: [
+          { text: '字节跳动面试题', link: `${llmGuide}10-RealQuestions/01-ByteDance-Questions` },
         ] },
       ],
       '/materials/': [
