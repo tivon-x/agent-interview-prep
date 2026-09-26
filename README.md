@@ -1,22 +1,26 @@
 # AI / Agent 面试复习库
 
-个人面试复习项目，面向 AI 应用开发、Agent 工程、RAG、数据平台与 Python 后端岗位。
+个人面试复习项目，面向 AI 应用开发、Agent 工程、RAG、数据平台与 Python 后端岗位。站点使用 VitePress，复习顺序是先按[资料阅读路线](docs/reading-path.md)读完站内资料和个人笔记，再闭卷做 360 道题，最后对照解析。
 
-- `docs/byte-agent/`：字节数据平台 Agent 岗位的 360 题题库与解析。
-- `docs/notes/`：自己维护的前沿技术、项目深挖和后端复习内容。
 - `docs/materials/`：从公开资料截取的一次性快照，保留来源与许可证。
+- `docs/notes/`：自己维护的前沿技术、项目深挖和后端复习内容。
+- `docs/byte-agent/`：资料读完后的 360 题题库与解析。
 - `.local-sources/`：仅本地参考、不进入 GitHub 的资料。
 
 ## 本地预览
 
 ```powershell
-uvx --with "mkdocs-material>=9.6,<10" mkdocs serve
+npm ci
+npm run dev
 ```
 
 ## 构建检查
 
 ```powershell
-uvx --with "mkdocs-material>=9.6,<10" mkdocs build --clean
+npm run build
+npm run preview
 ```
+
+第三方资料是精选快照，部分原站章节未收录，快照中的相关链接可能需要回原站查看。
 
 本站用于个人学习。第三方资料的版权属于原作者，具体来源见[资料索引](docs/sources.md)。

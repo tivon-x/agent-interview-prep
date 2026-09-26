@@ -2,6 +2,8 @@
 
 本项目保存的是一次性学习快照，不跟踪上游更新。后续内容以个人补充和修改为主。
 
+按[资料阅读路线](reading-path.md)阅读站内收录的章节；本页用于核对原作者、许可证和未收录内容的上游入口。
+
 ## AI / Agent
 
 - [LLM-Agent-Interview-Guide 本地快照](materials/llm-agent-interview-guide/README.md)：LLM、推理、RAG、Agent、系统设计和真实面经。[上游仓库](https://github.com/Lau-Jonathan/LLM-Agent-Interview-Guide)，Apache-2.0。
