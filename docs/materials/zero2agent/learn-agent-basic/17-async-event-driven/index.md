@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: "异步 Agent 与事件驱动架构"
 description: "从同步请求-响应到异步执行、事件触发和安全隔离的工程演进"
 eyebrow: "Agent Basic / 17"

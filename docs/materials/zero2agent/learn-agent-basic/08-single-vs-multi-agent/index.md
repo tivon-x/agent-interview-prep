@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: 单 Agent 和多 Agent 的边界
 description: 判断什么时候需要多 Agent，而不是盲目拆角色
 eyebrow: Agent Basic / 08

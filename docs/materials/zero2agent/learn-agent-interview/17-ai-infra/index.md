@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: AI Infra：训练、推理与 GPU 平台工程
 description: 拆解训练平台、推理服务、GPU 调度与 AIOps
 eyebrow: Agent 面试通关 / 17

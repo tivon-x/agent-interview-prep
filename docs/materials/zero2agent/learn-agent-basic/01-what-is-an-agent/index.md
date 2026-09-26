@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: 什么是 Agent
 description: 从工程角度理解 Agent 的最小定义
 eyebrow: Agent Basic / 01

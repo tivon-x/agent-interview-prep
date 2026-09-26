@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: AI 代码分析与测试：覆盖率、插桩、代码过滤
 description: 用 Agent 做代码测试的面试题拆解，覆盖插桩原理、前置分析、边界过滤
 eyebrow: Agent 面试通关 / 11

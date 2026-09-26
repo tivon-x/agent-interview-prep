@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: 为什么很多 Agent Demo 一落地就不稳定
 description: 从工程视角看 Agent Demo 到生产的断层
 eyebrow: Agent Basic / 04

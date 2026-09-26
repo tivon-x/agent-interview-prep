@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: RAG 与检索系统：从 chunk 设计到多路召回
 description: RAG 检索工程面试题拆解，覆盖 chunk 策略、查询改写、意图识别、召回精排
 eyebrow: Agent 面试通关 / 09

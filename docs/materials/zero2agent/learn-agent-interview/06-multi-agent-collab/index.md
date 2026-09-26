@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: 多智能体协作：角色分工、通信机制与冲突仲裁
 description: 多 Agent 协作面试题拆解，对比新手答与高手答的深度差距
 eyebrow: Agent 面试通关 / 06

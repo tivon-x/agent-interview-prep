@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: DeepSeek Harness
 description: 从设计理念理解可组合 Agent Runtime 的工程边界
 eyebrow: Module 07

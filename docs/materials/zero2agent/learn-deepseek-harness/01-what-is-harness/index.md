@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: DeepSeek Harness：一切皆插件的 Agent 运行时
 description: 从 DSH 的产品定位和无特权内核理解它的设计起点
 eyebrow: DeepSeek Harness / 01

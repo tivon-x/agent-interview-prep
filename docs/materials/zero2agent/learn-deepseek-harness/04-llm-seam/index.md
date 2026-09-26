@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: LLM 接缝：把模型差异关在适配器里
 description: 从统一词汇表理解模型适配、流式协议与失败策略
 eyebrow: DeepSeek Harness / 04

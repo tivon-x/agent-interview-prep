@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: 工具管理：参数校验、工具路由与百级工具库
 description: Agent 工具管理面试题拆解，对比新手答与高手答的深度差距
 eyebrow: Agent 面试通关 / 02

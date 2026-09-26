@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: 安全边界：把信任放到模型之外
 description: 用审批、沙箱和凭据策略约束 Agent 的真实副作用
 eyebrow: DeepSeek Harness / 11

@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: Coding Agent：最成功的 Agent 落地形态
 description: 为什么写代码的 Agent 跑在了所有场景前面，以及它的核心工程模式
 eyebrow: Agent Basic / 12

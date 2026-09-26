@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: Prompt 工程与框架原理：模板构建、Skills 机制
 description: Prompt 模板分层构建和 Skills 可复用能力单元的实现原理
 eyebrow: Agent 面试通关 / 08

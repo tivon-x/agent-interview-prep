@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: Code Mode：上下文压缩不等于安全隔离
 description: 理解 Code Mode 的压缩价值与真实安全边界
 eyebrow: DeepSeek Harness / 09

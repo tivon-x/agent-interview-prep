@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: Session Log：为什么日志就是事实源
 description: 从追加式事实源理解模型上下文、恢复、Fork 与审计
 eyebrow: DeepSeek Harness / 07

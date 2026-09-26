@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: Workflow 和 Agent 的区别
 description: 理清 Workflow、LLM App 与 Agent 的边界
 eyebrow: Agent Basic / 02

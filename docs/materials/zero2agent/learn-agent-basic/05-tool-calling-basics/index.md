@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: 大模型 API 输入输出与 Tool Calling
 description: 从消息协议到完整工具调用循环，理解 Agent 如何和大模型 API 交互
 eyebrow: Agent Basic / 05

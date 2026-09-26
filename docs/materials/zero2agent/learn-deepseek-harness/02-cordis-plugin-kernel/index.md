@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: 声明式与命令式：Cordis 的五个核心概念
 description: 从插件模型理解 Cordis 如何管理依赖、状态与生命周期
 eyebrow: DeepSeek Harness / 02

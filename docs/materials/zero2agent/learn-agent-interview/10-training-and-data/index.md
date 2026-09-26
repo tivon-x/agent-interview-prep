@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: 训练、数据与模型优化：从数据清洗到 LoRA
 description: Agent 训练数据、微调方法、对齐算法与底层优化的面试题拆解
 eyebrow: Agent 面试通关 / 10

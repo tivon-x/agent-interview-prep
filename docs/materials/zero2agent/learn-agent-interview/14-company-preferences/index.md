@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: 各公司面试偏好：按公司备战的高频题速查
 description: 按公司分类的 Agent 面试高频考点分析与代表性问题速查，帮你针对目标公司定向备战
 keywords: 腾讯Agent面试偏好,蚂蚁Agent面试重点,字节Agent面试特点,阿里Agent面试方向,快手Agent面试,淘宝闪购Agent面试,高德面试,百度Agent面试,bilibili面试,携程Agent面试,各公司面试对比,Agent面试公司分析

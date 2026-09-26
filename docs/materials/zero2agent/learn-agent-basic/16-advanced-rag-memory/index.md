@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: "高级 RAG 与记忆架构"
 description: "从基础向量检索到 GraphRAG、Contextual Retrieval 和双层记忆系统"
 eyebrow: "Agent Basic / 16"

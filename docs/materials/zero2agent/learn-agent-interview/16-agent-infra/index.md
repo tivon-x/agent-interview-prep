@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: Agent Infra：Runtime、Sandbox 与可靠执行
 description: 拆解 Agent Runtime、状态恢复、沙箱与高并发调度
 eyebrow: Agent 面试通关 / 16

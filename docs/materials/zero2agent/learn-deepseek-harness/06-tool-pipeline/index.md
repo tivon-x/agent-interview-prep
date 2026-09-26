@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: Tool Pipeline：能力为什么不能直接等于权限
 description: 从工具管线理解作用域、授权、执行与结果投影的分离
 eyebrow: DeepSeek Harness / 06

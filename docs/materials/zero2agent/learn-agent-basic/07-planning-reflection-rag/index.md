@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: Planning、Reflection、RAG 分别解决什么问题
 description: 分清三个高频概念在 Agent 系统中的职责
 eyebrow: Agent Basic / 07

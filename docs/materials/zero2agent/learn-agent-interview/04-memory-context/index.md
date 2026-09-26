@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: 记忆与上下文：长对话不丢信息的实战方案
 description: Agent 记忆系统面试题拆解，对比新手答与高手答的深度差距
 eyebrow: Agent 面试通关 / 04

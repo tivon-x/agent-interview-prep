@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: 架构选型：ReAct、Plan-and-Execute 与 ToT 怎么选
 description: Agent 架构选型面试题拆解，对比新手答与高手答的深度差距
 eyebrow: Agent 面试通关 / 01

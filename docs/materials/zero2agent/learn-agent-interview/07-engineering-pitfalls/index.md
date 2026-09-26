@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: 工程化踩坑：死循环、状态丢失与成本控制
 description: Agent 开发踩坑经验面试题拆解，对比新手答与高手答的深度差距
 eyebrow: Agent 面试通关 / 07

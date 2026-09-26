@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: Inbox 控制：为什么用户插话必须有自己的语义
 description: 用 Inbox 语义保留长任务中的交互因果
 eyebrow: DeepSeek Harness / 08

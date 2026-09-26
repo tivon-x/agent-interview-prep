@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: Agent Infra：从 Harness 到生产环境
 description: Agent 跑起来之后，还需要哪些基础设施才能上线
 eyebrow: Agent Basic / 09

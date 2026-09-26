@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: 多模态与实时交互 Agent
 description: Voice Agent 三种架构范式、Computer Use / GUI Agent 设计模式、快慢解耦的跨模态工程原则
 eyebrow: Agent Basic / 14

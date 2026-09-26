@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: Runtime Surfaces：一套运行时如何服务多个宿主
 description: 从预置 Profile 理解多宿主运行时
 eyebrow: DeepSeek Harness / 13

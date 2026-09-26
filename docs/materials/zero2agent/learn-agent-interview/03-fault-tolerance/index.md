@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: 容错与鲁棒性：超时、报错、误操作的工程化处理
 description: Agent 容错设计面试题拆解，对比新手答与高手答的深度差距
 eyebrow: Agent 面试通关 / 03

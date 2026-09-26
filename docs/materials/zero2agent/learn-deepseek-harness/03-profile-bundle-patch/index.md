@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: 运行中的 DSH：插件树、组合层与能力接缝
 description: 理解插件树如何从有序配置层启动并形成可替换能力
 eyebrow: DeepSeek Harness / 03

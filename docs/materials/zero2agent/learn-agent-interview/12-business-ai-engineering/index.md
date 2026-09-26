@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: 业务 AI 工程分析：业务场景与 AI 系统的结合面试题
 description: 业务理解与 AI 工程化结合的面试题拆解，覆盖业务需求拆解、AI 方案选型、效果评估与落地策略
 eyebrow: Agent 面试通关 / 12

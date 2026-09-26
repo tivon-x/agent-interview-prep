@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: learn-agent-basic
 description: Agent 基础认知、核心概念、工程边界与进阶模式
 eyebrow: Module 01

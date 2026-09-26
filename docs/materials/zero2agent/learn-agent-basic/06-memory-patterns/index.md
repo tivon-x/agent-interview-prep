@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: Context、State 与 Memory
 description: 从大模型 API 的消息轨迹出发，理清上下文、状态、短期记忆和长期记忆
 eyebrow: Agent Basic / 06

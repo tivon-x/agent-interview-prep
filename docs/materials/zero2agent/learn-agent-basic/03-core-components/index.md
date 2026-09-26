@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: 一个 Agent 系统的核心组成
 description: 从系统视角拆开 Agent 的关键模块
 eyebrow: Agent Basic / 03

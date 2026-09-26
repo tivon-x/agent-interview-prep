@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: 评估与全局观：怎么量化 Agent 好坏、落地最大挑战
 description: Agent 评估与行业认知面试题拆解，对比新手答与高手答的深度差距
 eyebrow: Agent 面试通关 / 05

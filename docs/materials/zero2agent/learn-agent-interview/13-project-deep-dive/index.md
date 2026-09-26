@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: 简历项目拷打：面试官追着你的 Agent 项目问到底
 description: Agent 面试中最难的环节不是八股，而是面试官针对你简历上的项目穷追猛打。本文覆盖 12 道高频项目拷打题，从部署上线到性能优化，教你怎么从「做过」答到「做深」。适用于淘宝闪购、阿里、字节等大厂 AI Agent 岗位面试准备。
 keywords: Agent面试项目拷打,简历项目追问,Agent项目经验,淘宝闪购AI面试,阿里Agent面试,Agent部署上线,知识库构建面试,工具调用面试,意图识别面试,RAG面试实战,Agent框架选型

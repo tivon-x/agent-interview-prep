@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: Agent 评估：怎么知道你的 Agent 好不好
 description: 从指标设计到评测方法，建立 Agent 质量的工程判断标准
 eyebrow: Agent Basic / 11

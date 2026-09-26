@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: "Agent 自进化：不改权重也能持续变强"
 description: "从经验积累到工具创造——Agent 系统的运行时自改进方法"
 eyebrow: "Agent Basic / 15"

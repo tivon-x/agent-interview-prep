@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: Agent Loop：控制平面如何推进任务
 description: 理解可替换 Loop 的控制边界与日志不变量
 eyebrow: DeepSeek Harness / 05

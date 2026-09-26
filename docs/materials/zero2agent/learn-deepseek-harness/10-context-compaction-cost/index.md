@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: Context Compaction：把上下文当作工作集管理
 description: 理解上下文压缩背后的信息选择、缓存与成本设计
 eyebrow: DeepSeek Harness / 10

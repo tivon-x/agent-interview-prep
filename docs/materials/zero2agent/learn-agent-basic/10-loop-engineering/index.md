@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: Loop Engineering：让 Agent 自主迭代直到正确
 description: Agent 执行循环中的自我纠错、退出判断与防护设计
 eyebrow: Agent Basic / 10

@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: Subagent 编排：扩展能力而不是复制 Loop
 description: 用可选接缝组织子代理、工作流与后台任务
 eyebrow: DeepSeek Harness / 12

@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: Context Engineering：系统化设计模型输入
 description: 从 Prompt Engineering 到 Context Engineering——Skills 加载、状态栏、压缩策略的工程方法论
 eyebrow: Agent Basic / 13

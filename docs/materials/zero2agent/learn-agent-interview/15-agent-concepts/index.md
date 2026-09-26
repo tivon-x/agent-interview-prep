@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: doc
 title: 概念考察：Harness Engineering、Context Engineering 与前沿范式
 description: Agent 领域核心概念面试题拆解——"你了解X吗"类高频题的深度回答
 eyebrow: Agent 面试通关 / 15
