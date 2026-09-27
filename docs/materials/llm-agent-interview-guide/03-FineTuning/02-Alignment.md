@@ -1,5 +1,7 @@
 # 对齐技术 (Alignment)
 
+**主线**：PPO 用奖励做在线优化，但需要训练 Critic；DPO 用已有偏好对直接训练，省去在线强化学习；GRPO 保留在线优化，用组内相对奖励代替 Critic。DPO 和 GRPO 分别解决 PPO 的不同成本，不是递进关系。
+
 ## 1. RLHF (Reinforcement Learning from Human Feedback)
 
 ### Q: RLHF 的完整流程 ⭐⭐⭐⭐
@@ -43,6 +45,14 @@ $$R(x,y) = r_\phi(x,y) - \beta \cdot D_{KL}(\pi_\theta \| \pi_{ref})$$
 
 KL 惩罚防止策略偏离参考模型太远。
 
+### Q: PPO 的思想、流程和局限是什么？
+
+**思想**：用奖励推动策略生成更好的回答，用 Critic 估计基线以降低更新噪声。PPO 的 clip 限制当前策略相对**采样时的旧策略**变化过大；RLHF 中的 KL 惩罚约束策略偏离**冻结的参考模型**。旧策略与参考模型作用不同。
+
+**流程**：① Actor 对提示词生成回答；② Reward Model 评分，结合参考模型的 KL 惩罚得到训练信号；③ Critic 估计价值，计算回答比预期好或差多少（优势）；④ 按优势和新旧策略概率比更新 Actor，同时训练 Critic；⑤ 重新采样，循环优化。
+
+**解决的问题**：从模型自身的新回答中持续学习，并控制单次更新幅度。**优势**：能在线探索，适合有可靠奖励的任务。**代价与边界**：生成、打分、训练 Critic 开销大；对奖励质量和超参数敏感，clip 也无法消除奖励投机或训练不稳定。代表应用：InstructGPT 的 RLHF 阶段。
+
 ---
 
 ## 3. DPO (Direct Preference Optimization)
@@ -69,16 +79,13 @@ $$P(y_w \succ y_l) = \sigma(r(x,y_w) - r(x,y_l))$$
 
 $$\mathcal{L}_{DPO} = -\mathbb{E}\left[\log \sigma\left(\beta \log \frac{\pi_\theta(y_w|x)}{\pi_{ref}(y_w|x)} - \beta \log \frac{\pi_\theta(y_l|x)}{\pi_{ref}(y_l|x)}\right)\right]$$
 
-### Q: DPO vs PPO 对比
+### Q: DPO 的思想、流程和局限是什么？
 
-| 特性 | PPO | DPO |
-|------|-----|-----|
-| 奖励模型 | 需要 | 不需要 |
-| 训练复杂度 | 高（4个模型） | 低（2个模型） |
-| 超参数 | 多 | 少 |
-| 在线/离线 | 在线 | 离线 |
-| 稳定性 | 较差 | 较好 |
-| 效果 | 某些场景更好 | 简单有效 |
+**思想**：在带参考策略约束的偏好优化目标下，利用最优策略与奖励的关系，把“训练奖励模型 + PPO”改写成偏好对上的分类损失。这里有目标的闭式关系，实际训练仍要迭代更新模型参数，并非一次算出最终模型。
+
+**流程**：准备同一问题的偏好回答 $y_w$ 和非偏好回答 $y_l$ → 分别计算当前策略与冻结参考模型对两者的对数概率 → 提高“偏好回答相对非偏好回答”的概率差距。
+
+**相对 PPO 解决的问题**：省去显式 Reward Model、Critic 和训练时的在线采样，流程更简单、资源开销通常更低。**边界**：标准 DPO 依赖固定偏好数据，无法自行探索新回答；数据覆盖和标注质量限制效果，也可能过度压低非偏好回答概率。它适合已有偏好对的对齐任务，不替代需要在线探索的强化学习。
 
 ---
 
@@ -90,7 +97,7 @@ $$\mathcal{L}_{DPO} = -\mathbb{E}\left[\log \sigma\left(\beta \log \frac{\pi_\th
 
 **算法流程**：
 1. 对每个问题 $x$，从策略 $\pi_\theta$ 采样一组回答 $\{y_1, ..., y_G\}$
-2. 用奖励模型 $r$ 对每个回答打分 $\{r_1, ..., r_G\}$
+2. 用奖励模型或可验证规则对每个回答打分 $\{r_1, ..., r_G\}$
 3. 计算组内标准化的优势：
 
 $$\hat{A}_i = \frac{r_i - \text{mean}(\{r_1,...,r_G\})}{\text{std}(\{r_1,...,r_G\})}$$
@@ -99,23 +106,28 @@ $$\hat{A}_i = \frac{r_i - \text{mean}(\{r_1,...,r_G\})}{\text{std}(\{r_1,...,r_G
 
 $$\mathcal{L}_{GRPO} = -\mathbb{E}\left[\frac{1}{G}\sum_{i=1}^{G}\left(\min\left(\frac{\pi_\theta(y_i|x)}{\pi_{\theta_{old}}(y_i|x)}\hat{A}_i, \text{clip}(\cdot)\hat{A}_i\right) - \beta D_{KL}(\pi_\theta \| \pi_{ref})\right)\right]$$
 
-### Q: GRPO vs PPO 的关键区别
+### Q: GRPO 相对 PPO 改进了什么？还有什么局限？
 
-| 特性 | PPO | GRPO |
-|------|-----|------|
-| Critic 模型 | 需要（参数量=Actor） | **不需要** |
-| 优势估计 | GAE (需要 Critic) | 组内相对奖励 |
-| 显存占用 | 大（4个模型） | 小（2个模型+采样） |
-| 训练效率 | 较低 | 更高 |
-| 使用模型 | InstructGPT | **DeepSeek-R1** |
+**思想**：把同一问题的一组回答互相比较，以组均值为基线、组内标准差做归一化。高于组均值的回答得到正优势，低于均值的得到负优势，无需单独训练 Critic。它保留了 PPO 式在线采样、概率比和 clip；不是在 DPO 上继续优化。
+
+**解决的问题**：省去 Critic 的显存和训练成本，同时保留探索新答案的能力。数学、代码等结果可验证的任务容易提供明确奖励；GRPO 最早用于 DeepSeekMath，后用于 DeepSeek-R1。
+
+**边界**：每题要生成多个回答，采样成本仍高；组内奖励相同时缺少有效优势信号，奖励有偏差时仍会把策略带偏。去掉 Critic 不等于去掉奖励计算，也不保证整体训练更快。
+
+### Q: PPO、DPO、GRPO 如何区分？
+
+| 方法 | 训练信号与更新 | 省掉什么 | 主要边界 |
+|------|----------------|----------|----------|
+| PPO | 在线生成，用奖励与 Critic 估计优势 | 无 | 多模型训练成本高，依赖奖励质量 |
+| DPO | 用现有偏好对直接优化策略 | 显式奖励模型、Critic、在线采样 | 受固定数据覆盖与质量限制 |
+| GRPO | 在线生成一组回答，用组内相对奖励估计优势 | Critic | 组内采样成本高，依赖奖励区分度 |
 
 ---
 
 ## 5. 其他对齐方法
 
-### DAPO (Decoupled Alignment from Direct Preference Optimization)
-- 解耦对齐的不同方面
-- 分别处理有用性和安全性
+### DAPO (Decoupled Clip and Dynamic sAmpling Policy Optimization)
+- 基于 GRPO 的长推理训练改进，使用非对称 clip 和动态采样等方法改善训练稳定性与有效样本利用
 
 ### REINFORCE++
 - REINFORCE 的改进版
@@ -131,7 +143,7 @@ DPO (2023, Stanford)
     ↓
 KTO, IPO, ORPO (2024, 各种改进)
     ↓
-GRPO (2025, DeepSeek-R1)
+GRPO (2024, DeepSeekMath；2025, DeepSeek-R1)
     ↓
 DAPO, REINFORCE++ (2025-2026)
 ```
