@@ -46,6 +46,8 @@
 - 添加 10-20% 的 overlap
 - 根据下游任务调整
 
+<!--@include: ../../../notes/project-examples/rag-chunking.md-->
+
 ### Q: 常用 Embedding 模型
 
 | 模型 | 维度 | 特点 |
@@ -80,6 +82,8 @@ $$\text{RRF}(d) = \sum_{i: d \in R_i} \frac{1}{k + \operatorname{rank}_i(d)}$$
 | B | 2 | 3 | $1/62+1/63\approx0.0320$ |
 
 B 在两路都靠前，因此排在 A 前面。RRF 比直接加权原始分数省去分数归一化，也比取交集少漏掉单路召回的文档；融合后仍可交给重排序模型精排。
+
+<!--@include: ../../../notes/project-examples/rag-retrieval.md-->
 
 **边界**：RRF 忽略原始分数差距，无法判断“第 1 名明显优于第 2 名”还是两者接近；结果还受各路 Top-K 和 $k$ 影响。$k$ 越小越偏重头部，越大则排名差距越平缓。多路都排前面只是排序信号，不保证文档本身相关。
 
@@ -124,6 +128,8 @@ B 在两路都靠前，因此排在 A 前面。RRF 比直接加权原始分数�
       → 充分：生成回答
     → 否：直接回答
 ```
+
+<!--@include: ../../../notes/project-examples/rag-evidence.md-->
 
 ### Q: Graph RAG
 

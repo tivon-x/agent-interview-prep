@@ -25,6 +25,12 @@
 
 重点：Agent Runtime、Harness、工具生命周期、状态持久化、长任务、流式事件和失败恢复。
 
+## 边读边对照项目
+
+- RAG：[分块策略](../materials/zero2agent/learn-agent-interview/09-rag-retrieval/index.md)、[检索与证据](../materials/llm-agent-interview-guide/04-RAG/01-RAG-Complete-Guide.md)。
+- 多 Agent：[任务分工与状态合并](../materials/zero2agent/learn-agent-interview/06-multi-agent-collab/index.md)、[评测边界](../materials/zero2agent/learn-agent-basic/11-agent-evaluation/index.md)。
+- Harness：[工具调用边界](../materials/zero2agent/learn-deepseek-harness/06-tool-pipeline/index.md)、[会话与压缩](../materials/zero2agent/learn-deepseek-harness/07-session-log/index.md)。
+
 ## 回答边界
 
 统一使用“结论 → 证据 → 边界 → 改进方向”。无法从代码、测试或评测产物确认的能力，不包装成已经实现或上线的成果。

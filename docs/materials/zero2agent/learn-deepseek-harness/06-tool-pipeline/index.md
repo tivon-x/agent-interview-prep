@@ -9,6 +9,8 @@ eyebrow: DeepSeek Harness / 06
 
 模型选择了一个工具，只说明它认为这个工具有帮助，不说明调用已经合法。把模型返回的 JSON 直接交给 `exec`，等于让概率性输出同时承担授权、参数校验、执行和审计，这是 Demo 进入生产后最危险的捷径之一。
 
+<!--@include: ../../../../notes/project-examples/tool-boundary.md-->
+
 ## 一个工具有三个面
 
 | 面 | 负责什么 | 主要消费者 |
