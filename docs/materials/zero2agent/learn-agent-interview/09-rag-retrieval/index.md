@@ -1007,6 +1007,8 @@ flowchart TB
 
 **Milvus 实战**：Milvus 2.4+ 原生支持 hybrid search，内置 RRF 和 WeightedRanker 两种融合策略。推荐先用 RRF（K=60 是常用起点），如果对精排效果不满意再切 WeightedRanker 手动调权重。
 
+<!--@include: ../../../../notes/project-examples/rag-retrieval.md-->
+
 ---
 
 ### Q：如何系统性提升 RAG 的检索相关度与生成效果？
@@ -3383,6 +3385,8 @@ flowchart TB
 **高手答**：证据块携带稳定 citation ID、文档/版本、章节区间、内容哈希和 ACL；模型只能选择本次允许的 ID。合并相邻块前验证版本、连续位置和权限一致，生成后逐 claim 检查引用是否真正支持结论。无法映射的断言删除、降级为不确定或触发补检索，不能只验证“编号存在”。
 
 **差距在哪**：新手验证格式，高手验证证据身份、连续性和语义支撑。
+
+> **项目例子**：[Agentic RAG 如何保留原文并隔离请求证据](/notes/project-defense#证据和失败处理)。
 
 ---
 

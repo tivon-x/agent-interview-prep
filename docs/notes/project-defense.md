@@ -21,6 +21,8 @@
 
 范围只限用户导入的论文，不自动搜索全网。解析失败会显式降级；扫描件若需要 OCR，会标出状态，不把未提取的内容当作已入库知识。
 
+#### 论文分块
+
 **分块为什么不是一个固定数字？** 小块主题集中，容易精准命中，却可能丢失上下文；大块上下文完整，但多个主题会冲淡匹配信号。项目有两条不同的处理路径：
 
 | 路径 | 实际怎么分 | 关键边界 |
@@ -28,9 +30,15 @@
 | 论文上传后的产品路径 | 先按解析出的章节、页码和内容块建段落；过长内容再按段落、句子，最后按字符切开 | 检索文本连同元数据前缀不得超过 6000 字符；引用保留源文，不凭切块猜页码 |
 | 通用文件索引器 | 平面模式默认递归字符切分，上限 512 字符、重叠 64 字符；还提供 token、句子切分和“文档 → 章节 → 段落”的分层模式 | 这些可选实现不等于论文上传的默认分段方式 |
 
+**对应原理与面试题**：[分块方法](/materials/llm-agent-interview-guide/04-RAG/01-RAG-Complete-Guide#q-chunking-策略) · [分块策略怎么选](/materials/zero2agent/learn-agent-interview/09-rag-retrieval/#q-分块策略怎么设计-不同策略的优缺点)
+
 **为什么把检索文本和引用原文分开？** 检索时给段落加可信的论文标题、作者和章节前缀，有助于匹配；展示给用户的引文仍必须是解析出的原文。项目为论文、解析版本、章节和段落生成稳定 ID，让引用能回到对应论文页码，而不是指向一次检索中的临时序号。
 
+#### 检索与重排
+
 **为什么需要两路召回和重排？** 用户用不同措辞提问时，向量路可以找到语义相近的段落；查论文标题、模型名或特定术语时，BM25 更稳。两路先扩大候选覆盖，再用重排模型筛掉看似相关的噪声，最后限制送给回答模型的证据量。当前默认 B1 先把两路不同量纲的分数归一化再融合，随后重排；资料中介绍的 RRF 属于 B2/B3 等实验配置，不能说成当前默认。
+
+**对应原理与面试题**：[混合检索](/materials/llm-agent-interview-guide/04-RAG/01-RAG-Complete-Guide#q-向量检索-vs-关键词检索-vs-混合检索) · [为什么用 BM25](/materials/zero2agent/learn-agent-interview/09-rag-retrieval/#q-为什么在检索阶段引入bm25-它和向量检索怎样组合) · [检索到文档却答不好](/materials/zero2agent/learn-agent-interview/09-rag-retrieval/#q-rag-系统检索到的文档很多但回答质量差-怎么排查)
 
 ### 证据和失败处理
 
@@ -38,6 +46,8 @@
 - **同一会话也要隔离请求**：新问题开始时重置上一问的证据、检索轨迹和回答状态，避免旧引文进入新答案。
 - **排查质量问题按链路走**：先看目标内容是否入库，再看两路召回有没有找到，接着看融合与重排是否把它排掉，最后检查上下文截断和生成是否忽略了证据。
 - **索引不能半途替换**：新版本先在独立目录构建，检查向量模型、检索配置和索引文件是否匹配后才激活；不兼容时拒绝加载，而不是悄悄换一套召回结果。
+
+**对应面试题**：[引用漂移与跨版本证据](/materials/zero2agent/learn-agent-interview/09-rag-retrieval/#q-rag-如何防止引用漂移和跨版本证据拼接) · [原文证据如何跳转](/materials/zero2agent/learn-agent-interview/09-rag-retrieval/#q-rag-前端如何展示长文档-并让引用稳定跳转到原文证据)
 
 ### 评测结论与当前边界
 
@@ -47,10 +57,12 @@
 
 自适应补检也保留在显式实验路径；已有复验没有证明质量净收益，默认回答策略仍是固定路径。
 
+**对应原理与面试题**：[RAG 评估指标](/materials/llm-agent-interview-guide/04-RAG/01-RAG-Complete-Guide#q-rag-评估指标) · [评测维度与数据集](/materials/zero2agent/learn-agent-interview/05-eval-and-vision/#q-rag-系统如何评测-有哪些评测维度和指标-评测数据集怎么构建)
+
 **常见追问**
 
-- **为什么分层索引没有直接替代平面索引？** 文档树能保住章节关系，但解析质量、父子定位和检索排序都可能引入新误差。先用固定题集比较，再决定是否晋级。
-- **为什么平均分更高仍不切换？** 平均值会遮住重要问题上的退化；还要看逐题损失、证据质量、延迟和上下文成本。
+- **[为什么分层索引没有直接替代平面索引？](/materials/zero2agent/learn-agent-interview/09-rag-retrieval/#q-分块策略怎么设计-不同策略的优缺点)** 文档树能保住章节关系，但解析质量、父子定位和检索排序都可能引入新误差。先用固定题集比较，再决定是否晋级。
+- **[为什么平均分更高仍不切换？](/materials/zero2agent/learn-agent-interview/05-eval-and-vision/#q-rag-系统如何评测-有哪些评测维度和指标-评测数据集怎么构建)** 平均值会遮住重要问题上的退化；还要看逐题损失、证据质量、延迟和上下文成本。
 
 ## Deep Research
 
@@ -63,9 +75,13 @@
 3. **并行研究**：Research Worker 搜索和提取材料，写出发现、来源索引和事件记录。不同 Worker 只看获准的任务资料。
 4. **核验与报告**：Reviewer 比较主研究、独立佐证和反例；全局 Verification 检查缺口；Readiness 判断是否可以停止研究；Report 先列出计划写入的陈述，逐条核验后再生成报告、来源附录和导出件。
 
+#### Task Board 与任务权限
+
 **为什么用 Task Board？** 并行 Worker 若各自修改一份共享字典，晚写入者可能覆盖先完成的结果。项目让所有状态变化经过统一的状态合并器，检查任务身份、执行轮次、合法状态转换和重复更新。公开的 `research_tasks.json` 只是供界面和审计看的投影，不能反过来成为运行真相。
 
 **为什么模型只能提交 ID？** 如果让模型自由编写子任务描述和路径，它可能扩大工作范围或误读别人的产物。服务端从已批准的 Board 生成执行契约；同一批并行调用先预留 Assignment，再启动 Worker。重复领取、旧轮次或取消后的调用会在启动前被拒绝。
+
+**对应原理与面试题**：[子 Agent 编排责任](/materials/zero2agent/learn-deepseek-harness/12-subagent-orchestration/#三种编排责任) · [多 Agent 共享状态](/materials/zero2agent/learn-agent-interview/06-multi-agent-collab/#q-多-agent-之间需要共享状态吗-怎么设计) · [并行状态竞争](/materials/zero2agent/learn-agent-interview/06-multi-agent-collab/#q-多个-agent-并行跑的时候状态竞争怎么避免)
 
 ### “完成”需要什么证据
 
@@ -77,6 +93,8 @@
 
 报告完成后才允许把可复用研究结果写入长期记忆；checkpoint 管的是同一次运行的恢复，长期记忆管的是未来研究的背景，不能把未完成报告当成记忆。
 
+**对应面试题**：[Agent 完成率如何评测](/materials/zero2agent/learn-agent-interview/05-eval-and-vision/#q-agent-的端到端成功率和工具误调用率怎么量化-怎么改进)
+
 ### 预算、中断和评测边界
 
 项目限制研究轮次、并发、搜索、模型和工具调用以及总时长；进入收尾阶段后停止宽泛新任务，给核验和报告留资源。连续没有证据进展时转为定向补证或收尾，不把新增 URL 数量当成研究进展。
@@ -85,10 +103,12 @@ LangGraph 把执行快照（checkpoint）存入 SQLite。中断后，运行中�
 
 当前可讲无需外部模型的回归检查、Harbor 任务门禁和可续跑的评测记录。最近一次真实模型与搜索服务的冒烟运行因 Tavily 额度失败，没有报告、评判分数或 GAIA 成绩；不能据此宣称真实任务成功率、质量提升或成本下降。
 
+**对应面试题**：[失败恢复机制](/materials/zero2agent/learn-agent-interview/03-fault-tolerance/#q-你怎么设计-agent-的失败恢复机制)
+
 **常见追问**
 
-- **多 Agent 比单 Agent 好在哪里？** 这里拆分是为了给范围、研究、核验和报告不同的输入与完成条件，也便于独立重试；代价是状态和权限更复杂。
-- **Worker 写了报告为什么还要再核验？** 自然语言“完成”没有约束力；任务产物、独立来源和最终陈述分别可能出错，要在各自边界检查。
+- **[多 Agent 比单 Agent 好在哪里？](/materials/zero2agent/learn-agent-interview/06-multi-agent-collab/#q-怎么判断一个-agent-该做成单-agent-还是多-agent)** 这里拆分是为了给范围、研究、核验和报告不同的输入与完成条件，也便于独立重试；代价是状态和权限更复杂。
+- **[Worker 写了报告为什么还要再核验？](/materials/zero2agent/learn-agent-interview/05-eval-and-vision/#q-agent-的端到端成功率和工具误调用率怎么量化-怎么改进)** 自然语言“完成”没有约束力；任务产物、独立来源和最终陈述分别可能出错，要在各自边界检查。
 
 ## Forge
 
@@ -101,11 +121,15 @@ LangGraph 把执行快照（checkpoint）存入 SQLite。中断后，运行中�
 3. **工具返回**：模型提出工具调用，工具执行后返回配对的 `ToolMessage`，下一次模型请求才能看到结果。取消或失败不能留下悬空调用。
 4. **记录**：消息、工具结果、Todo、Goal 等写入一行一条记录的 JSONL 会话；后续可继续、导出或从历史分叉。
 
+#### 工具定义与执行边界
+
 **三个层次怎么分工？** `forge_agent` 管运行中的消息、队列、取消和事件；`forge_coding` 管项目资源、工具、模型、会话和 Goal；`forge_cli` 管命令入口与 TUI。这样的依赖方向让界面变化不会迫使底层重写模型循环。
 
 **工具定义为什么不复制一套 Schema？** 原生 `BaseTool` 已有模型可见名称、参数和执行逻辑。Forge 的 `ToolDefinition` 只保存产品标签和提示信息，避免“模型看到的参数”和“真正执行的参数”两套定义漂移。文件工具限制工作区路径并处理符号链接逃逸；项目指令文件须先经过信任检查。Shell 仍继承操作系统权限，**不等于沙箱**。
 
 **一轮多个工具能否并行？** Forge 默认按模型给出的顺序处理同一批工具调用；前一个失败后，后续调用不会偷跑，但每个调用仍得到配对的失败结果。它牺牲一些并行度，换取依赖顺序和会话记录一致。同一文件的读写编辑还会在进程内排队，避免两个会话同时改一个文件；这不覆盖跨进程写入或 Shell。
+
+**对应原理与面试题**：[工具执行管线](/materials/zero2agent/learn-deepseek-harness/06-tool-pipeline/#一个工具有三个面) · [工具调用安全](/materials/zero2agent/learn-agent-interview/03-fault-tolerance/#q-工具调用的安全控制是怎么实现的-如何限制模型调用敏感接口)
 
 ### 会话、压缩和恢复不是一回事
 
@@ -119,14 +143,16 @@ JSONL 追加写入时，崩溃可能只留下半条末行；读取只容忍这�
 
 Forge 还把 **Todo** 和 **Goal** 分开：Todo 管当前任务列表；Goal 管跨多轮持续目标，必须显式完成，不能因为清空 Todo 就自动宣称目标达成。子 Agent 可承担有边界的侦察、实现或审查任务；它们的工具范围由角色约束，不能因此推断整个运行环境被沙箱隔离。
 
+**对应原理与面试题**：[会话日志](/materials/zero2agent/learn-deepseek-harness/07-session-log/#一条铁律-模型可见即已记录) · [上下文压缩](/materials/zero2agent/learn-deepseek-harness/10-context-compaction-cost/#压缩必须保持哪些语义) · [何时用子 Agent](/materials/zero2agent/learn-agent-interview/06-multi-agent-collab/#q-什么时候该用-subagent-为什么工具调用多就倾向用-subagent)
+
 ### 能讲到什么程度
 
 可以讲官方 Agent Loop、工具边界、JSONL 会话、压缩、人工输入和子任务的具体机制；默认测试主要使用确定性假模型。不能把这些检查说成真实 Provider 的生产稳定性证明，也不能把临时 checkpoint 说成“进程重启后可恢复未回答的问卷”。Forge 当前也未作为该仓库版本发布到 PyPI。
 
 **常见追问**
 
-- **为什么还要 Agent Harness，直接用 LangChain 不行吗？** LangChain 负责模型和工具循环；Harness 统一管理产品侧的取消、排队、消息配对和流式事件，供 CLI、TUI 与测试复用。
-- **信任项目指令是否等于工具安全？** 不是。信任检查决定项目说明能否进入提示；文件路径约束管理文件工具；Shell 的系统权限仍需要另行控制。
+- **[为什么还要 Agent Harness，直接用 LangChain 不行吗？](/materials/zero2agent/learn-deepseek-harness/06-tool-pipeline/#当前-rc-8-的执行管线)** LangChain 负责模型和工具循环；Harness 统一管理产品侧的取消、排队、消息配对和流式事件，供 CLI、TUI 与测试复用。
+- **[信任项目指令是否等于工具安全？](/materials/zero2agent/learn-agent-interview/03-fault-tolerance/#q-工具调用的安全控制是怎么实现的-如何限制模型调用敏感接口)** 不是。信任检查决定项目说明能否进入提示；文件路径约束管理文件工具；Shell 的系统权限仍需要另行控制。
 
 ## 回答边界
 
