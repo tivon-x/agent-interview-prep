@@ -1,9 +1,9 @@
-import { defineConfig } from 'vitepress'
+import { withMermaid } from 'vitepress-plugin-mermaid'
 
 const materials = '/materials/'
 const llmGuide = `${materials}llm-agent-interview-guide/`
 
-export default defineConfig({
+export default withMermaid({
   title: 'AI / Agent 面试复习库',
   description: '面向 AI 应用、Agent 与后端岗位的个人面试复习资料',
   lang: 'zh-CN',
