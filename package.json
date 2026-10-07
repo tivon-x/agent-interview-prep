@@ -4,11 +4,13 @@
   "scripts": {
     "dev": "vitepress dev docs",
     "build": "vitepress build docs",
-    "preview": "vitepress preview docs"
+    "preview": "vite preview --config scripts/preview.config.mjs",
+    "verify:ui": "node scripts/verify-ui.mjs"
   },
   "devDependencies": {
     "markdown-it-mathjax3": "^4.3.2",
     "mermaid": "^11.17.2",
+    "playwright": "1.63.0",
     "vitepress": "1.6.4",
     "vitepress-plugin-mermaid": "^2.0.17"
   }

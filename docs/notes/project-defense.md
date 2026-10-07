@@ -1,5 +1,8 @@
 # 项目深挖：把原理讲成自己的项目
 
+<details class="document-method">
+<summary>项目总览与使用说明</summary>
+
 这页可以直接复习。先弄清每个项目解决的问题，再顺着一次请求理解设计，最后用边界和评测回答追问。
 
 | 项目 | 核心问题 | 最该讲清的取舍 |
@@ -7,6 +10,10 @@
 | Agentic RAG | 从论文库找到可靠证据再回答 | 分块、混合检索、重排和引用如何配合 |
 | Deep Research | 让多名研究 Agent 协作并交付有依据的报告 | 谁能执行任务、怎样合并状态、何时允许完成 |
 | Forge | 让编码 Agent 连续使用工具 | 模型循环、工具边界、会话和恢复分别由谁负责 |
+
+</details>
+
+<section data-study-section="agentic-rag">
 
 ## Agentic RAG
 
@@ -64,6 +71,10 @@
 - **[为什么分层索引没有直接替代平面索引？](/materials/zero2agent/learn-agent-interview/09-rag-retrieval/#q-分块策略怎么设计-不同策略的优缺点)** 文档树能保住章节关系，但解析质量、父子定位和检索排序都可能引入新误差。先用固定题集比较，再决定是否晋级。
 - **[为什么平均分更高仍不切换？](/materials/zero2agent/learn-agent-interview/05-eval-and-vision/#q-rag-系统如何评测-有哪些评测维度和指标-评测数据集怎么构建)** 平均值会遮住重要问题上的退化；还要看逐题损失、证据质量、延迟和上下文成本。
 
+</section>
+
+<section data-study-section="deep-research">
+
 ## Deep Research
 
 > **30 秒讲法**：这是面向开放问题的多 Agent 研究系统。它先把问题变成研究范围并等待审批，再由中央编排器把任务分给研究者；每项任务的身份、输入和产物由服务端确定。研究结果经过任务审查、全局缺口检查和逐条陈述核验，才能写成报告。
@@ -110,6 +121,10 @@ LangGraph 把执行快照（checkpoint）存入 SQLite。中断后，运行中�
 - **[多 Agent 比单 Agent 好在哪里？](/materials/zero2agent/learn-agent-interview/06-multi-agent-collab/#q-怎么判断一个-agent-该做成单-agent-还是多-agent)** 这里拆分是为了给范围、研究、核验和报告不同的输入与完成条件，也便于独立重试；代价是状态和权限更复杂。
 - **[Worker 写了报告为什么还要再核验？](/materials/zero2agent/learn-agent-interview/05-eval-and-vision/#q-agent-的端到端成功率和工具误调用率怎么量化-怎么改进)** 自然语言“完成”没有约束力；任务产物、独立来源和最终陈述分别可能出错，要在各自边界检查。
 
+</section>
+
+<section data-study-section="forge">
+
 ## Forge
 
 > **30 秒讲法**：Forge 是本地编码 Agent 命令行工具。它用 LangChain 官方 `create_agent` 执行模型与工具循环，Forge 自己负责会话、取消、事件投影和交互；编码层装配项目资源与文件工具，CLI/TUI 负责展示。重点是长任务中工具调用、人工输入、持久化和恢复如何保持一致。
@@ -153,6 +168,8 @@ Forge 还把 **Todo** 和 **Goal** 分开：Todo 管当前任务列表；Goal �
 
 - **[为什么还要 Agent Harness，直接用 LangChain 不行吗？](/materials/zero2agent/learn-deepseek-harness/06-tool-pipeline/#当前-rc-8-的执行管线)** LangChain 负责模型和工具循环；Harness 统一管理产品侧的取消、排队、消息配对和流式事件，供 CLI、TUI 与测试复用。
 - **[信任项目指令是否等于工具安全？](/materials/zero2agent/learn-agent-interview/03-fault-tolerance/#q-工具调用的安全控制是怎么实现的-如何限制模型调用敏感接口)** 不是。信任检查决定项目说明能否进入提示；文件路径约束管理文件工具；Shell 的系统权限仍需要另行控制。
+
+</section>
 
 ## 回答边界
 

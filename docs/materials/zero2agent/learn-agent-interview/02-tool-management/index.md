@@ -604,6 +604,468 @@ MCP 的价值在于：Agent 不需要知道底层是 REST、gRPC 还是 CLI—�
 
 ---
 
+### Q：大厂开源的 CLI 工具（如 lark-cli）和 MCP 有什么区别？它们跟直接调 API 又有什么不同？
+
+> 来源：大厂 Agent 面试高频题
+
+**新手答**：“CLI 就是命令行工具，MCP 就是协议，API 就是接口，三个不同的东西。”
+
+**高手答：**
+
+这三者不是简单的替代关系，而是三种不同的**能力暴露与 Agent 接入方式**。
+
+更重要的是要理解它们的演进背景：
+
+> **API 一直存在 → MCP 在 2024 年后兴起，试图统一 Agent 工具协议 → 随着 MCP 大规模落地暴露出工具膨胀、上下文开销、部署和调试复杂等问题，2026 年前后又出现了一波面向 Agent 设计的 CLI → CLI 缓解了 MCP 的一些问题，但并没有取代 MCP。**
+
+例如 MCP 在 2024 年 11 月发布，而飞书官方 Lark CLI 到 2026 年 3 月才正式开源，因此今天这波 CLI 热潮更准确地说是 **MCP 之后出现的另一条 Agent 工具路线**。
+
+## 1. API：底层能力接口
+
+API 是最基础的一层。
+
+例如飞书 OpenAPI，本质上就是：
+
+```
+程序
+  ↓ HTTP / SDK
+飞书 OpenAPI
+  ↓
+JSON Response
+```
+
+开发者需要自己处理：
+
+- 鉴权；
+- URL 和参数；
+- 分页；
+- 错误码；
+- 重试；
+- 数据结构；
+- SDK 封装。
+
+所以 API 最主要的服务对象仍然是**程序代码**。
+
+如果我要开发一个稳定的后端服务，例如“每天凌晨同步飞书日历到数据库”，直接调用 API 往往仍然是最自然的方案。
+
+## 2. MCP：把 Agent 调工具标准化
+
+MCP 解决的核心问题是：
+
+> **不能每接入一种工具，就为每一种 Agent 写一套适配器。**
+
+于是 MCP 定义了一套统一协议：
+
+```
+                   ┌→ 飞书 MCP Server → 飞书 API
+Agent → MCP Client ├→ GitHub MCP Server → GitHub API
+                   ├→ Database MCP Server → Database
+                   └→ File MCP Server → File System
+```
+
+Agent 不需要关心底层到底是 REST、gRPC、数据库还是文件系统，只需要知道：
+
+```
+有哪些工具？
+→ tools/list
+
+这个工具参数是什么？
+→ JSON Schema
+
+调用这个工具
+→ tools/call
+```
+
+MCP 最大的价值因此不是“调用能力更强”，而是：
+
+> **把 Agent 和工具之间的连接协议标准化。**
+
+一个 MCP Server 写好以后，可以被 Claude、Cursor、VS Code 或其他支持 MCP 的 Agent Host 使用。
+
+这也是 MCP 最重要的生态价值。
+
+## 3. 但 MCP 大规模落地之后，也出现了一些工程问题
+
+MCP 解决了**标准化问题**，但不代表它在所有场景都是最简单的调用方式。
+
+其中一个典型问题就是**工具描述和上下文开销**。
+
+大量 MCP Tool 往往需要向模型提供完整的工具名称、描述和 JSON Schema。工具从十几个增加到几十甚至上百个后，工具定义本身就可能占用大量上下文。2026 年 MCP 官方社区也出现了专门讨论 Tool Schema token overhead 的提案和实测。
+
+除此之外还有一些工程成本：
+
+```
+工具数量膨胀
+      ↓
+大量 Tool Schema
+      ↓
+Context 占用 / Tool Selection 变难
+
+以及：
+
+MCP Server 配置
+      ↓
+认证 / Server 生命周期
+      ↓
+协议调试 / 日志排查
+```
+
+特别是对于 Claude Code、Codex 这种本身就拥有 Shell 的 Coding Agent 来说，一个问题自然出现了：
+
+> **既然 Agent 本来就会执行 Shell，为什么所有东西都一定要封装成 MCP Tool？**
+
+这就是今天 Agent-native CLI 再次兴起的重要背景。
+
+## 4. CLI：MCP 之后重新兴起的另一条路线
+
+这里要区分两个概念。
+
+CLI 本身当然不是新东西，Git、kubectl、ffmpeg、docker 都存在很多年。
+
+**真正的新趋势，是专门针对 AI Agent 设计 CLI。**
+
+例如飞书官方对 `lark-cli` 的定位就是同时面向人类和 AI Agent，并提供结构化输出、Agent Skills、智能默认参数、Schema 查询等能力。
+
+它的调用链大致是：
+
+```
+Agent
+  ↓
+Shell
+  ↓
+lark-cli
+  ↓
+飞书 OpenAPI
+```
+
+例如：
+
+```
+lark-cli calendar +agenda
+lark-cli docs +fetch --doc xxx
+lark-cli im +messages-send ...
+```
+
+Agent 不需要先注册几十个 Tool Schema。
+
+需要某个能力时，可以：
+
+```
+lark-cli --help
+lark-cli schema
+```
+
+按需发现能力。
+
+这实际上把：
+
+**“Tool Schema 全部提前塞给模型”**
+
+变成了：
+
+**“需要什么，再通过 CLI 动态查询什么”。**
+
+## 5. CLI 解决了 MCP 的哪些痛点？
+
+这是理解这波 CLI 兴起最关键的地方。
+
+### 第一，减少工具定义占用 Context
+
+MCP 常见模式是：
+
+```
+启动 Agent
+ ↓
+加载几十个 Tool Schema
+ ↓
+全部进入可用工具空间
+```
+
+CLI 则更像：
+
+```
+Agent
+ ↓
+知道 lark-cli 存在
+ ↓
+需要日历能力
+ ↓
+lark-cli calendar --help
+ ↓
+执行具体命令
+```
+
+也就是从：
+
+> **eager loading**
+
+转变为：
+
+> **按需发现。**
+
+### 第二，复用 Agent 已经非常成熟的 Shell 能力
+
+Coding Agent 原本就大量执行：
+
+```
+git
+grep
+curl
+jq
+python
+docker
+kubectl
+```
+
+因此：
+
+```
+lark-cli ...
+```
+
+本质上只是又多了一个它会操作的程序。
+
+模型对于 CLI、Shell Script、管道和错误输出也已经有非常丰富的训练数据。
+
+例如可以直接：
+
+```
+lark-cli xxx | jq ... > result.json
+```
+
+先在环境里过滤数据，再只把需要的信息放回 Context。
+
+飞书官方在介绍 CLI 时也特别强调了管道、脚本、本地文件和按需 `--help` 等能力。
+
+### 第三，更容易调试
+
+MCP 调用失败时，问题可能来自：
+
+```
+Agent
+→ MCP Client
+→ Transport
+→ MCP Server
+→ API
+```
+
+CLI 出问题时，开发者可以直接复制 Agent 执行的命令：
+
+```
+lark-cli docs +fetch ...
+```
+
+自己在终端跑一遍。
+
+可观测性和复现成本通常更低。
+
+### 第四，更适合 Coding Agent 的“程序化组合”
+
+CLI 天然可以组合：
+
+```
+CLI
+ + Shell
+ + jq
+ + grep
+ + Python
+ + 文件系统
+ + Script
+```
+
+例如 Agent 不一定需要：
+
+```
+get_all_messages()
+get_message_count()
+filter_message()
+summarize_message()
+```
+
+四个 MCP Tool。
+
+它完全可以：
+
+```
+lark-cli message list ... > messages.json
+jq '...' messages.json
+```
+
+然后自己写一个小 Python 脚本完成处理。
+
+这与当前 Coding Agent 越来越强调的“**让模型写代码处理数据，而不是为所有操作预定义 Tool**”是一致的。
+
+## 6. 但 CLI 并没有取代 MCP
+
+这是这道题最容易走向另一个极端的地方。
+
+看到 CLI 的优势以后，不能得出：
+
+> “MCP 已经过时，以后都用 CLI。”
+
+因为 MCP 解决的核心问题仍然存在：
+
+> **跨 Agent、跨平台的标准化。**
+
+CLI 的问题也非常明显。
+
+比如：
+
+```
+lark-cli ...
+github ...
+aws ...
+kubectl ...
+```
+
+每个平台都有自己的：
+
+- 命令体系；
+- 参数设计；
+- 输出格式；
+- 认证方式；
+- 错误语义。
+
+Agent 需要分别理解。
+
+而 MCP 提供的是统一接口：
+
+```
+tools/list
+tools/call
+resources/list
+prompts/list
+...
+```
+
+所以两者实际上是在做一个经典的工程权衡：
+
+|                 | CLI                         | MCP                            |
+| --------------- | --------------------------- | ------------------------------ |
+| 核心思想        | 利用 Shell 作为通用执行环境 | 定义统一 Agent 协议            |
+| 工具发现        | `--help` / docs / Skill     | `tools/list`                   |
+| 参数描述        | CLI 参数                    | JSON Schema                    |
+| 上下文加载      | 可以按需发现                | Tool Schema 可能进入模型上下文 |
+| 组合能力        | Shell / pipe / script 很强  | Tool 调用结构化                |
+| 调试            | 终端直接复现                | 需要 MCP 调试链路              |
+| 标准化程度      | 各 CLI 各自定义             | 高                             |
+| 跨 Agent 复用   | 依赖 Agent 是否有 Shell     | MCP Client 均可接入            |
+| 类型约束        | 相对弱                      | 强 Schema                      |
+| Remote Tool     | 不天然解决                  | 非常适合                       |
+| Coding Agent    | 很自然                      | 也支持                         |
+| 通用 Agent 平台 | 需要额外封装                | 更自然                         |
+
+所以：
+
+> **CLI 优化的是“Agent 怎么方便地使用某个平台”；MCP 优化的是“整个 Agent 生态怎么用统一协议连接所有平台”。**
+
+这是两个不同层面的问题。
+
+## 7. CLI 和 MCP 甚至可以组合
+
+它们并不互斥。
+
+一种实现可以是：
+
+```
+                    ┌→ CLI → API
+Agent → MCP Server ─┤
+                    └→ SDK → API
+```
+
+也可以反过来，Agent 同时拥有：
+
+```
+Agent
+ ├── MCP：连接标准化 Remote Tools
+ ├── CLI：操作本地和开发环境
+ └── API：代码内部直接调用
+```
+
+因此现代 Agent Harness 往往不是“三选一”，而是根据任务选择最合适的工具暴露方式。
+
+## 8. 那大厂为什么现在纷纷做 CLI？
+
+这里就不能再简单回答：
+
+> “CLI 是为了抢占 MCP 出现后的 Agent 生态，所以是一个低成本试水方案。”
+
+更准确的说法是：
+
+> **MCP 先证明了 Agent 需要一个庞大的外部工具生态；而随着 Agent 真正开始大规模使用工具，开发者发现，并不是所有能力都值得包装成一个个 MCP Tool。**
+
+对于已经拥有 Shell、文件系统和代码执行能力的 Coding Agent：
+
+```
+Skill
+  ↓
+CLI
+  ↓
+API
+```
+
+有时反而比：
+
+```
+几十 / 上百个 MCP Tools
+  ↓
+MCP Server
+  ↓
+API
+```
+
+更轻、更灵活。
+
+飞书就是一个非常典型的例子：它目前同时维护官方 CLI 和 MCP Server，而不是发布 CLI 后废弃 MCP。飞书官方甚至直接列出了两者在认证、部署、输出、AI 集成等方面的差异。
+
+因此 CLI 的重新兴起实际上说明：
+
+> **Agent 工具生态正在从“什么都包装成 Tool”，进一步走向“协议工具 + Shell 工具 + 动态工具发现”的混合架构。**
+
+而不是从 MCP 简单退回 CLI。
+
+## 9. 最后怎么理解 API、CLI、MCP？
+
+我会把它们理解成三个不同的抽象层：
+
+```
+                    Agent
+                      │
+          ┌───────────┼───────────┐
+          │           │           │
+         MCP         CLI       程序代码
+          │           │           │
+     MCP Server    lark-cli      SDK
+          │           │           │
+          └───────────┼───────────┘
+                      ↓
+                     API
+                      ↓
+                  真实业务系统
+```
+
+**API 是能力底座。**
+
+**CLI 是 Shell-native 的 Agent 操作界面。**
+
+**MCP 是协议化、标准化的 Agent 工具接口。**
+
+它们不是简单的：
+
+> API → CLI → MCP
+
+更准确的产业演进是：
+
+> **API 长期存在 → MCP 推动 Agent 工具协议标准化 → 实践中暴露 Context、工具膨胀、运维和组合效率等问题 → Agent-native CLI 再度兴起 → CLI 与 MCP 形成互补。**
+
+**CLI 的兴起确实部分源于早期 MCP Direct Tool Calling 暴露出的 Tool Schema 膨胀、上下文开销以及组合效率问题。但随着 Code Mode / Code Execution with MCP 出现，MCP 也开始支持按需发现工具、在代码环境中组合调用以及本地处理中间结果，因此 CLI 在“管道组合”和“Context 效率”上的相对优势已经明显缩小。现在两者真正的区别越来越不是“能不能组合工具”，而是工具接口本身：CLI 依赖 Shell 和既有命令行生态，MCP 提供标准化、类型化的跨平台工具协议。未来很可能不是 CLI 替代 MCP，而是 **MCP + Code Mode 与 CLI + Shell 两种 programmable tool-use 形态长期并存。**
+
+### 面试时最后可以收成一句话
+
+> **MCP 解决的是“怎么统一接工具”，CLI 解决的是“Agent 怎么低成本、高效率地操作工具”，API 则是下面真正提供能力的接口。CLI 的这波重新兴起实际上晚于 MCP，它缓解了 MCP 在大量工具、Context 开销、部署调试和程序化组合上的一些问题，但牺牲了一部分协议标准化，所以它没有取代 MCP。现在更合理的方向不是 CLI vs MCP 二选一，而是 MCP 负责标准化连接，CLI 负责 Shell-native 执行，两者最终都会落到底层 API。**
+
+---
+
 ## 工具设计与实现
 
 ### Q：手撕一个 ReAct 架构的 Agent，实现文件操作（找文件、删除文件）
@@ -1308,6 +1770,22 @@ flowchart TD
 
 ---
 
+多 Skill 场景和多 Tool 场景其实不太一样。Skill 本质上是一组按场景加载的自然语言指令和知识，模型根据当前 Goal 和 Context 判断什么时候需要它，因此它没有 Tool 那样严格的输入输出和函数调用关系。
+
+Skill 之间的编排通常可以通过一个更高层的编排 Skill 来完成，由它描述不同阶段什么时候应该使用什么能力，以及进入下一阶段需要哪些信息。
+
+所谓 Skill 之间的“参数传递”，本质上更多是上下文中的信息复用。如果下一个 Skill 所需要的信息已经存在于 Context，就直接执行；如果信息不足，再由编排逻辑决定补充信息或者调用其他 Skill，而不一定需要定义严格的 input/output Schema。
+
+至于 Skill 之间的依赖冲突，由于 Skill 本身是自然语言指令，这种冲突往往很难由 Harness 做形式化检测，更适合在 Skill 的设计、组合测试和 eval 阶段发现并消除。
+
+因此 Skill 编排通常也不是传统意义上的优先级调度，而是：
+
+**Goal + 当前 Context → 编排规则 → 判断当前场景 → 选择相应 Skill → 更新 Context → 继续执行。**
+
+Harness 当然仍负责上下文管理、工具执行等底层能力，但**不应该把 Skill 强行抽象成另一种 Tool Calling 系统。**
+
+---
+
 ### Q：你们有没有用 MCP？为什么要把 OAuth2.1 接到 MCP 里？
 
 > 来源：视频面经汇总
@@ -1411,6 +1889,24 @@ Host 启动时为每个 MCP Server 建立独立 Client 会话，完成能力发�
 Web 层可由认证中间件解析用户身份，将请求路由到对应的 session_id；会话元数据和消息历史存入按租户、用户、会话分区的存储，MCP 凭证由服务端按请求注入，不能由前端或模型传入。用 SSE/WebSocket 推送流式结果，并通过分布式锁或版本号避免同一会话并发写乱。
 
 **差距在哪**：新手只会“多配几个地址”，高手能讲清命名空间、能力发现、动态披露、身份传递和 Server 端二次鉴权。面试官考的是多 MCP 场景的协议与安全边界。
+
+---
+
+一个 Agent 同时连接多个 MCP Server，我会在 Agent Runtime 里设计一个 **MCP Client Manager**。每个 MCP Server 对应独立的 Client，负责连接、能力发现和调用；上层再通过 Tool Router 把不同 Server 暴露出来的工具统一注册给模型。为了避免不同 Server 出现同名工具，可以用 `gmail.search`、`notion.search` 这种 namespace 做区分。模型选择工具之后，Harness 根据工具所属的 Server，把请求路由到对应的 MCP Client。
+
+如果这个 Agent 部署成 Web 多用户平台，我会把 **用户、对话会话和 MCP 连接**分开管理。
+
+用户级别主要管理身份、权限和外部服务凭证。比如用户登录以后，后端能够拿到可信的 `user_id`；这个用户连接 Gmail、Notion 时产生的 OAuth Token，也按照 `user_id + MCP Server` 存储。这里的用户身份不能让模型自己传，因为模型输出是不可信的，真正的身份和 Token 必须由后端根据当前登录态注入。
+
+会话级别主要管理 Agent 自己的运行状态。一个用户可以同时开多个 Conversation，每个 Conversation 都有自己独立的消息历史、Goal、Todo、短期 Memory、工作区和临时文件。这些状态一般按照 `user_id + conversation_id` 存在数据库或者 Redis 里。这样同一个用户的多个对话可以共享 Gmail 授权，但不会共享各自的 Agent 上下文。
+
+MCP 连接本身属于更底层的资源。对于无状态的远程 MCP Server，没有必要一个用户、一个 Conversation 就创建一条物理连接，可以复用 HTTP Client 和连接池。真正的数据隔离依赖用户凭证和请求上下文。如果碰到有状态的旧版 MCP Server，或者 Server 内部确实保存了 workspace、临时上下文之类的 session state，再按照 `user_id + conversation_id + server_id` 做独立 session，必要时甚至独立进程或实例。
+
+所以我会把整个架构概括成一句话：
+
+**多 MCP Server 由 MCP Client Manager 和 Tool Router 负责管理；用户身份、权限和凭证按 user 隔离；Agent 的消息和运行状态按 user + conversation 隔离；底层 MCP 连接能复用就复用，只有真正存在会话状态时才进一步做 session 级隔离。**
+
+这里还要特别区分，Web 里的 Conversation Session 和 MCP 协议里的 Session 不是一个概念。Agent 做到哪一步、当前 Goal 是什么、有哪些 Todo，这些都应该由 Agent Runtime 管理，而不能依赖一条 MCP 连接来维持。
 
 ---
 
