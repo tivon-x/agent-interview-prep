@@ -115,6 +115,38 @@ export default {
           ],
         },
       ],
+      "/notes/ml-basics/": [
+        { text: "机器学习基础", items: [
+          { text: "六章阅读入口", link: "/notes/ml-basics/" },
+          { text: "泛化与数据划分", link: "/notes/ml-basics/01-generalization" },
+          { text: "指标与模型评估", link: "/notes/ml-basics/02-evaluation" },
+          { text: "回归、正则与 MLE/MAP", link: "/notes/ml-basics/03-linear-models" },
+          { text: "KNN、贝叶斯与 SVM", link: "/notes/ml-basics/04-classic-classifiers" },
+          { text: "树与集成学习", link: "/notes/ml-basics/05-tree-ensembles" },
+          { text: "特征、聚类与降维", link: "/notes/ml-basics/06-clustering-features" },
+          { text: "笔试计算与编程专项", link: "/notes/ml-dl-practice/" },
+        ] },
+      ],
+      "/notes/dl-basics/": [
+        { text: "深度学习基础", items: [
+          { text: "六章阅读入口", link: "/notes/dl-basics/" },
+          { text: "神经网络与反向传播", link: "/notes/dl-basics/01-backprop" },
+          { text: "激活与损失", link: "/notes/dl-basics/02-activations-losses" },
+          { text: "优化器与初始化", link: "/notes/dl-basics/03-optimization" },
+          { text: "正则、归一化与排障", link: "/notes/dl-basics/04-training" },
+          { text: "CNN 与残差", link: "/notes/dl-basics/05-cnn" },
+          { text: "RNN、LSTM 与 GRU", link: "/notes/dl-basics/06-rnn" },
+          { text: "笔试计算与编程专项", link: "/notes/ml-dl-practice/" },
+        ] },
+      ],
+      "/notes/ml-dl-practice/": [
+        { text: "笔试专项", items: [
+          { text: "计算与编程", link: "/notes/ml-dl-practice/" },
+          { text: "机器学习基础", link: "/notes/ml-basics/" },
+          { text: "深度学习基础", link: "/notes/dl-basics/" },
+          { text: "阅读路线", link: "/reading-path" },
+        ] },
+      ],
       "/notes/": [
         {
           text: "资料阅读",

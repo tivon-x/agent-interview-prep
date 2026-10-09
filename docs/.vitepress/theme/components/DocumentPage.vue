@@ -6,7 +6,7 @@ const view = ref(props.kind === "route" ? "full" : "agentic-rag");
 const body = ref();
 const historic = ref(false);
 const stations = ref([
-  { label: "模型基础", id: "_1-大模型与-agent-基础" },
+  { label: "ML / DL / 大模型", id: "_1-机器学习、深度学习与大模型基础" },
   { label: "工程实践", id: "_2-rag-与-agent-工程" },
   { label: "评测与设计", id: "_3-评测、安全与系统设计" },
   { label: "后端系统", id: "_4-后端与数据平台" },

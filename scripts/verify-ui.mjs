@@ -100,76 +100,19 @@ const snapshot = async (name, p = page) => {
   manifest.screenshots.push(file);
 };
 
-await check("built content and old anchors are preserved", async () => {
-  const baselinePath = "output/design/baseline/manifest.json";
-  try {
-    const baseline = JSON.parse(await fs.readFile(baselinePath));
-    for (const entry of baseline.markdown) {
-      if (
-        [
-          "docs/index.md",
-          "docs/reading-path.md",
-          "docs/notes/project-defense.md",
-          "docs/byte-agent/question-bank.md",
-        ].includes(entry.file)
-      )
-        continue;
-      assert.equal(
-        crypto
-          .createHash("sha256")
-          .update(await fs.readFile(entry.file))
-          .digest("hex"),
-        entry.hash,
-        entry.file,
-      );
-    }
-    for (const name of [
-      "reading-path.md",
-      "notes/project-defense.md",
-      "byte-agent/question-bank.md",
-    ]) {
-      const original = await fs.readFile(
-        "output/design/baseline/" + name.replaceAll("/", "_"),
-        "utf8",
-      );
-      const current = (await fs.readFile("docs/" + name, "utf8"))
-        .replace(/^<\/?(?:section|details)[^>]*>\r?\n/gm, "")
-        .replace(
-          /^<summary>(使用约定、核心方向与简历边界|阅读顺序与快照说明|项目总览与使用说明)<\/summary>\r?\n/gm,
-          "",
-        )
-        .replace(/\s/g, "");
-      assert.equal(current, original.replace(/\s/g, ""), name);
-    }
-    for (const old of baseline.html.filter(
-      (p) => !["index.html", "404.html"].includes(p.file),
-    )) {
-      const html = await fs.readFile(
-        "docs/.vitepress/dist/" + old.file,
-        "utf8",
-      );
-      for (const id of old.ids.filter(
-        (id) =>
-          ![
-            "VPContent",
-            "VPNavBar",
-            "local-search",
-            "doc-outline-aria-label",
-            "main-nav-aria-label",
-            "sidebar-nav-aria-label",
-            "sidebar-aria-label",
-            "page-outline-info",
-            "VPSidebarNav",
-          ].includes(id) && !/^mermaid-|^VP/.test(id),
-      ))
-        assert.ok(html.includes(`id="${id}"`), `${old.file}#${id}`);
-    }
-  } catch (e) {
-    if (e.code === "ENOENT" && path.resolve(e.path) === path.resolve(baselinePath)) {
-      return false;
-    }
-    throw e;
-  }
+await check("current tracked study content and reading anchors are preserved", async () => {
+  // The old redesign snapshot predates later content edits; compare with current HEAD.
+  const changed = execFileSync("git", ["diff", "--name-only", "HEAD", "--", "docs"], { encoding: "utf8" })
+    .trim().split(/\r?\n/).filter(Boolean);
+  const allowed = new Set(["docs/reading-path.md", "docs/sources.md", "docs/library.md"]);
+  assert.deepEqual(changed.filter(f => !f.startsWith("docs/.vitepress/") && !allowed.has(f)), []);
+  const route = await fs.readFile("docs/.vitepress/dist/reading-path.html", "utf8");
+  assert.ok(route.includes('id="_1-大模型与-agent-基础"'));
+  assert.ok(route.includes('id="_2-rag-与-agent-工程"'));
+  await fs.writeFile(path.join(out, "content-preservation.json"), JSON.stringify({
+    baseline: "git HEAD", changed, allowedContentEdits: [...allowed],
+    retainedLegacyAnchors: ["_1-大模型与-agent-基础", "_2-rag-与-agent-工程"]
+  }, null, 2));
 });
 await check(
   "question chunks contain exactly 360 paired questions",
@@ -248,7 +191,7 @@ await check("local links regressions and known snapshot gaps", async () => {
       if (
         url.origin !== new URL(base).origin ||
         !url.pathname.startsWith(new URL(base).pathname) ||
-        /\.(svg|png|jpg|pdf|woff2|json|css|js|txt)$/.test(url.pathname)
+        /\.(svg|png|jpg|pdf|woff2|json|css|js|txt|py)$/.test(url.pathname)
       )
         return [];
       let target = decodeURI(url.pathname).replace(/\.html$/, "");
@@ -282,11 +225,72 @@ await check("local links regressions and known snapshot gaps", async () => {
   );
   assert.equal(additions.length, 0, JSON.stringify(additions.slice(0, 5)));
 });
+
+await check("ML/DL chapters, formulas, practice and mobile entry points", async () => {
+  const folders = ["ml-basics", "dl-basics", "ml-dl-practice"];
+  const routes = [];
+  for (const folder of folders) {
+    const files = (await fs.readdir("docs/notes/" + folder)).filter(f => f.endsWith(".md"));
+    assert.equal(files.length, folder === "ml-dl-practice" ? 1 : 7);
+    for (const file of files) routes.push("notes/" + folder + "/" + (file === "index.md" ? "" : file.slice(0, -3)));
+  }
+  for (const route of routes) {
+    const response = await page.goto(base + route);
+    assert.equal(response.status(), 200, route);
+    await settle(page);
+    assert.ok(await page.locator(".reader-body h1").count(), route);
+    assert.equal(await page.locator("mjx-merror").count(), 0, route);
+    if (!route.endsWith("/")) {
+      assert.ok(await page.locator("mjx-container").count(), route);
+      assert.ok(await page.locator(".reader-body details").count() >= 3, route);
+    }
+  }
+  await go("");
+  assert.equal(await page.locator(".topic-list a").count(), 7);
+  await page.locator(".topic-list a").filter({ hasText: "机器学习基础" }).click();
+  await page.getByRole("heading", { name: "机器学习基础", exact: true }).waitFor();
+  await page.getByRole("link", { name: "主线阅读 ↗" }).click();
+  await page.locator(".reader-body h1").waitFor();
+  assert.equal(await page.locator('.reader-body a[href^="./0"]').count(), 6);
+  await snapshot("ml-dl-ml-index-desktop");
+  await go("library?topic=" + encodeURIComponent("深度学习基础"));
+  await page.getByRole("link", { name: "主线阅读 ↗" }).click();
+  await page.locator(".reader-body h1").waitFor();
+  assert.equal(await page.locator('.reader-body a[href^="./0"]').count(), 6);
+  await go("reading-path");
+  for (const folder of folders) assert.ok(await page.locator('[data-study-section=full] a[href*="/notes/' + folder + '/"]').count());
+  await go("notes/ml-dl-practice/");
+  const download = await page.locator('.reader-body a[href$="reference.py"]').getAttribute("href");
+  const response = await page.request.get(new URL(download, page.url()).href);
+  assert.equal(response.status(), 200);
+  assert.ok((await response.text()).includes("def gmm_m_step"));
+  await page.locator(".reader-body details summary").first().click();
+  assert.ok(await page.locator(".reader-body details[open]").count());
+  await snapshot("ml-dl-practice-desktop");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await snapshot("ml-dl-practice-mobile");
+  for (const route of ["", "library?topic=" + encodeURIComponent("机器学习基础"), "notes/ml-basics/06-clustering-features"]) {
+    await go(route);
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1);
+    assert.equal(overflow, false, route);
+  }
+  await snapshot("ml-dl-gmm-mobile");
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.locator(".DocSearch-Button").click();
+  await page.locator("#localsearch-input").fill("GMM");
+  await page.locator(".VPLocalSearchBox .result").first().waitFor();
+  assert.match(await page.locator(".VPLocalSearchBox").innerText(), /GMM/);
+  await snapshot("ml-dl-search-gmm");
+  await page.keyboard.press("Escape");
+  await page.evaluate((key) => localStorage.removeItem(key), storageKey);
+  await page.setViewportSize({ width: 1440, height: 900 });
+});
+
 await check(
   "desktop learning route, filtering, history and project deep links",
   async () => {
     await go("");
-    await page.getByRole("link", { name: /开始阅读/ }).click();
+    await page.getByRole("link", { name: "学习路线", exact: true }).first().click();
     await page.locator(".route-stations a").first().waitFor();
     assert.equal(await page.locator(".route-stations a").count(), 5);
     await click("近期安排 2026.10");

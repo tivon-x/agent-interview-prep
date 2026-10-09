@@ -8,10 +8,14 @@ const topics = [
   "RAG 与检索",
   "评测与安全",
   "后端与系统设计",
+  "机器学习基础",
+  "深度学习基础",
 ];
 const selected = ref(topics[0]);
 const query = ref("");
 const main = {
+  机器学习基础: "/notes/ml-basics/",
+  深度学习基础: "/notes/dl-basics/",
   大模型基础: "/materials/llm-agent-interview-guide/01-Foundation/",
   "Agent 工程": "/materials/zero2agent/learn-agent-interview/",
   "RAG 与检索": "/materials/llm-agent-interview-guide/04-RAG/",
@@ -19,6 +23,8 @@ const main = {
   后端与系统设计: "/materials/system-design-primer/README-zh-Hans",
 };
 const descriptions = {
+  机器学习基础: "从泛化与评估到经典算法，重点练 LR、GMM/EM 和树模型。",
+  深度学习基础: "理解反向传播与训练过程，把优化器和 CNN 落实为计算题。",
   大模型基础: "理解输入如何变成输出，再看推理开销与训练取舍。",
   "Agent 工程": "把模型、工具与状态接起来，弄清一次任务如何可靠完成。",
   "RAG 与检索": "从文档处理到引用，让每一个回答都有可以回查的证据。",

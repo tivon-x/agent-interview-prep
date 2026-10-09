@@ -12,6 +12,17 @@
 - [ai-agent-interview-guide 分类题库快照](materials/ai-agent-interview-guide/docs/01-面试八股文/README.md)：按主题整理的 Agent 面试题。[上游仓库](https://github.com/bcefghj/ai-agent-interview-guide)，MIT。
 - [Building Effective Agents](https://www.anthropic.com/engineering/building-effective-agents)：Workflow 与 Agent 的边界和组合模式。仅保存链接与个人笔记。
 
+## 机器学习与深度学习
+
+[机器学习六章](notes/ml-basics/index.md)、[深度学习六章](notes/dl-basics/index.md)和[笔试专项](notes/ml-dl-practice/index.md)是本站重新整理的学习笔记，不是上游正文快照。外部材料按专题链接，不要求完整阅读。
+
+- [AI-interview-cards](https://github.com/zixian2021/AI-interview-cards)：问答选题和查漏，答案需要核实。
+- [Stanford CS229 课程笔记](https://cs229.stanford.edu/notes2022fall/main_notes.pdf)：回归、MLE/MAP、GMM/EM 的推导。
+- [XGBoost 官方原理教程](https://xgboost.readthedocs.io/en/stable/tutorials/model.html)：二阶目标、正则化、叶权重与分裂增益。
+- [动手学深度学习](https://zh.d2l.ai/)：Softmax 从零实现、反向传播、优化器及 CNN/RNN 的相关章节。
+
+资料顺序：常见问题查漏 → 按薄弱点查原理 → 做计算与手写题。本站没有复制这些来源的完整正文或题库。
+
 ## 后端与数据系统
 
 - [JavaGuide 精选快照](materials/javaguide/docs/ai/README.md)：网络、操作系统、数据库、Redis、消息队列与分布式基础。[上游仓库](https://github.com/Snailclimb/JavaGuide)，Apache-2.0。

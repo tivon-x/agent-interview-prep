@@ -52,13 +52,19 @@
 
 ## 第一阶段：读资料
 
-### 1. 大模型与 Agent 基础
+<span id="_1-大模型与-agent-基础"></span>
 
-1. [LLM 基础：Transformer、分词和优化](materials/llm-agent-interview-guide/01-Foundation/index.md)
-2. [推理与部署](materials/llm-agent-interview-guide/02-Inference/index.md)
-3. [微调与对齐](materials/llm-agent-interview-guide/03-FineTuning/index.md)
-4. [Agent 基础：从概念到 Loop](materials/zero2agent/learn-agent-basic/index.md)
-5. [JavaGuide AI 应用开发知识体系](materials/javaguide/docs/ai/README.md)：依次读[大模型基础](materials/javaguide/docs/ai/llm-basis/README.md)、[Agent](materials/javaguide/docs/ai/agent/README.md)等站内专题。
+### 1. 机器学习、深度学习与大模型基础
+
+1. [机器学习基础](notes/ml-basics/index.md)：按六章阅读，重点补 LR、GMM/EM、XGBoost 和 MLE/MAP。
+2. [深度学习基础](notes/dl-basics/index.md)：按六章阅读，重点把反向传播、优化器、CNN 变成可计算的知识。
+3. [LLM 基础：Transformer、分词和优化](materials/llm-agent-interview-guide/01-Foundation/index.md)
+4. [推理与部署](materials/llm-agent-interview-guide/02-Inference/index.md)
+5. [微调与对齐](materials/llm-agent-interview-guide/03-FineTuning/index.md)
+6. [Agent 基础：从概念到 Loop](materials/zero2agent/learn-agent-basic/index.md)
+7. [JavaGuide AI 应用开发知识体系](materials/javaguide/docs/ai/README.md)：依次读[大模型基础](materials/javaguide/docs/ai/llm-basis/README.md)、[Agent](materials/javaguide/docs/ai/agent/README.md)等站内专题。
+
+基础章节学完后，做 [ML/DL 笔试计算与编程专项](notes/ml-dl-practice/index.md)。先做 LR Batch GD 和 GMM M-step，再做 Softmax、反向传播和 CNN 尺寸计算。参考资料只按薄弱点补读，不要求通读外部课程。
 
 ### 2. RAG 与 Agent 工程
 

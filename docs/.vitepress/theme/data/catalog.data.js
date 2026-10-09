@@ -7,8 +7,12 @@ export const categories = [
   "RAG 与检索",
   "评测与安全",
   "后端与系统设计",
+  "机器学习基础",
+  "深度学习基础",
 ];
 export function topic(url) {
+  if (/\/notes\/(ml-basics|ml-dl-practice)\//.test(url)) return "机器学习基础";
+  if (/\/notes\/dl-basics\//.test(url)) return "深度学习基础";
   if (/javaguide\/docs\/(?!ai(?:\/|$))/.test(url)) return categories[4];
   if (/\b(rag|retrieval)\b/i.test(url)) return categories[2];
   if (/\b(safety|evaluation|eval|security)\b/i.test(url)) return categories[3];

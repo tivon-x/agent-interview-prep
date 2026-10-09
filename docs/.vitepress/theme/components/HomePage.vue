@@ -21,7 +21,7 @@ const stages = [
   {
     n: "01",
     title: "建立理解",
-    text: "从 Transformer 到 Agent Loop，先把机制读懂，再把知识串起来。",
+    text: "从机器学习、神经网络到 Agent Loop，先把机制读懂，再把知识串起来。",
     link: "/reading-path",
     label: "沿路线阅读",
     note: "原理 · 工程 · 系统",
@@ -49,6 +49,8 @@ const topics = [
   "RAG 与检索",
   "评测与安全",
   "后端与系统设计",
+  "机器学习基础",
+  "深度学习基础",
 ];
 const href = withBase;
 </script>
@@ -77,7 +79,7 @@ const href = withBase;
           >{{ latest ? "继续阅读" : "开始阅读" }}
           <span aria-hidden="true">↗</span></a
         >
-        <p class="hero-scope"><span>5 个专题</span><span>3 个个人项目</span><span>360 道自测题</span></p>
+        <p class="hero-scope"><span>{{ topics.length }} 个专题</span><span>3 个个人项目</span><span>360 道自测题</span></p>
         <p class="continue-note">
           {{ continueTitle || "从基础出发，沿着知识线索向前。" }}
         </p>
@@ -104,7 +106,7 @@ const href = withBase;
         </a>
         <a class="outline-step outline-practice" :href="href('/byte-agent/practice?q=Q001')">
           <span class="outline-number">04</span>
-          <div><small>形成表达</small><strong>合上资料，再回答</strong><p>360 道题，检验自己的理解</p></div>
+          <div><small>形成表达</small><strong>合上资料，再回答</strong><p>360 道岗位题，检验自己的理解</p></div>
           <span class="outline-arrow" aria-hidden="true">↗</span>
         </a>
       </nav>
@@ -144,6 +146,7 @@ const href = withBase;
       </div>
     </section>
     <section class="home-projects">
+      <a class="text-link" :href="href('/notes/ml-dl-practice/')">ML/DL 笔试计算与编程专项：LR · GMM · 反向传播 ↗</a>
       <p class="eyebrow">FROM MY WORK / 个人项目</p>
       <div class="project-intro">
         <h2>原理需要一个<br /><em>真实的落点。</em></h2>
