@@ -10,10 +10,12 @@ const topics = [
   "后端与系统设计",
   "机器学习基础",
   "深度学习基础",
+  "笔试与企业认知",
 ];
 const selected = ref(topics[0]);
 const query = ref("");
 const main = {
+  笔试与企业认知: "/notes/china-mobile/",
   机器学习基础: "/notes/ml-basics/",
   深度学习基础: "/notes/dl-basics/",
   大模型基础: "/materials/llm-agent-interview-guide/01-Foundation/",
@@ -23,6 +25,7 @@ const main = {
   后端与系统设计: "/materials/system-design-primer/README-zh-Hans",
 };
 const descriptions = {
+  笔试与企业认知: "从移动科技岗非图形题复习数量、逻辑、通信与企业文化。",
   机器学习基础: "从泛化与评估到经典算法，重点练 LR、GMM/EM 和树模型。",
   深度学习基础: "理解反向传播与训练过程，把优化器和 CNN 落实为计算题。",
   大模型基础: "理解输入如何变成输出，再看推理开销与训练取舍。",

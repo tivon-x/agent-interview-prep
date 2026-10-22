@@ -147,6 +147,15 @@ export default {
           { text: "阅读路线", link: "/reading-path" },
         ] },
       ],
+      "/notes/china-mobile/": [
+        { text: "中国移动科技岗笔试", items: [
+          { text: "范围与复习入口", link: "/notes/china-mobile/" },
+          { text: "言语理解与逻辑判断", link: "/notes/china-mobile/01-reasoning" },
+          { text: "数量关系与离散推理", link: "/notes/china-mobile/02-quantitative" },
+          { text: "通信、网络与云计算", link: "/notes/china-mobile/03-technology" },
+          { text: "企业文化与企业认知", link: "/notes/china-mobile/04-culture" },
+        ] },
+      ],
       "/notes/": [
         {
           text: "资料阅读",

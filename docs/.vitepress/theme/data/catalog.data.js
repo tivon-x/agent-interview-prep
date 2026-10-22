@@ -9,8 +9,10 @@ export const categories = [
   "后端与系统设计",
   "机器学习基础",
   "深度学习基础",
+  "笔试与企业认知",
 ];
 export function topic(url) {
+  if (/\/notes\/china-mobile\//.test(url)) return "笔试与企业认知";
   if (/\/notes\/(ml-basics|ml-dl-practice)\//.test(url)) return "机器学习基础";
   if (/\/notes\/dl-basics\//.test(url)) return "深度学习基础";
   if (/javaguide\/docs\/(?!ai(?:\/|$))/.test(url)) return categories[4];

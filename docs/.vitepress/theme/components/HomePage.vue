@@ -51,6 +51,7 @@ const topics = [
   "后端与系统设计",
   "机器学习基础",
   "深度学习基础",
+  "笔试与企业认知",
 ];
 const href = withBase;
 </script>
