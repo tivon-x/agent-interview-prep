@@ -247,14 +247,14 @@ await check("ML/DL chapters, formulas, practice and mobile entry points", async 
   }
   await go("");
   assert.equal(await page.locator(".topic-list a").count(), 7);
-  await page.locator(".topic-list a").filter({ hasText: "机器学习基础" }).click();
-  await page.getByRole("heading", { name: "机器学习基础", exact: true }).waitFor();
-  await page.getByRole("link", { name: "主线阅读 ↗" }).click();
+  await page.locator(".topic-list a").filter({ hasText: "个人笔记" }).click();
+  await page.getByRole("heading", { name: "个人笔记", exact: true }).waitFor();
+  await page.locator('.library-rows a[href$="/notes/ml-basics/"]').click();
   await page.locator(".reader-body h1").waitFor();
   assert.equal(await page.locator('.reader-body a[href^="./0"]').count(), 6);
   await snapshot("ml-dl-ml-index-desktop");
   await go("library?topic=" + encodeURIComponent("深度学习基础"));
-  await page.getByRole("link", { name: "主线阅读 ↗" }).click();
+  await page.locator('.library-rows a[href$="/notes/dl-basics/"]').click();
   await page.locator(".reader-body h1").waitFor();
   assert.equal(await page.locator('.reader-body a[href^="./0"]').count(), 6);
   await go("reading-path");
@@ -299,19 +299,17 @@ await check(
     await page.goBack();
     await page.waitForTimeout(200);
     assert.ok(await page.locator("[data-study-section=full]").isVisible());
-    await go("library");
-    await page.getByRole("button", { name: /03 RAG 与检索/ }).click();
-    await page.getByLabel("筛选当前专题").fill("no-such-material");
+    await go("library?source=all");
+    await page.getByLabel("按专题筛选").selectOption("RAG 与检索");
+    await page.getByLabel("筛选资料").fill("no-such-material");
     await page.getByRole("heading", { name: "没有找到匹配的章节。" }).waitFor();
     await click("清空筛选 ↗");
     assert.ok(await page.locator(".library-rows a").count());
+    await page.getByLabel("按专题筛选").selectOption("RAG 与检索");
     await page.reload();
     await settle(page);
-    assert.equal(
-      await page.locator(".library-topic-heading h2").innerText(),
-      "RAG 与检索",
-    );
-    await page.getByRole("link", { name: "主线阅读 ↗" }).click();
+    assert.equal(await page.getByLabel("按专题筛选").inputValue(), "RAG 与检索");
+    await page.locator('.library-rows a[href$="/04-RAG/"]').click();
     await page.locator(".reader-body h1").waitFor();
     await page.getByRole("link", { name: "← 回到学习路线" }).click();
     await page.locator(".route-page").waitFor();
@@ -364,31 +362,13 @@ await check(
       1,
     );
     await go("library");
-    assert.equal(
-      await page.locator(".library-section").first().locator("h3").innerText(),
-      "主线章节",
-    );
-    assert.equal(
-      await page
-        .locator(".library-section")
-        .first()
-        .locator("h4")
-        .first()
-        .innerText(),
-      "Transformer 架构详解",
-    );
-    const readme = page.locator(".library-section").filter({
-      has: page.getByRole("heading", { name: "资料集入口", exact: true }),
-    });
-    assert.equal(
-      await readme.locator('a[href$="/llm-basis/README"]').count(),
-      1,
-    );
+    assert.equal(await page.locator(".library-section h3").first().innerText(), "资料目录");
+    assert.equal(await page.getByRole("navigation", { name: "资料来源", exact: true }).getByRole("button").count(), 7);
+    assert.ok(await page.locator('.library-rows a[href$="/01-Foundation/"]').count());
+    await page.getByLabel("筛选资料").fill("Transformer");
     const rowCount = await page.locator(".library-rows a").count();
-    assert.equal(
-      await page.locator(".filter-row [role=status]").innerText(),
-      `${rowCount} 篇资料`,
-    );
+    assert.ok(rowCount > 0);
+    assert.equal(await page.locator(".filter-row [role=status]").innerText(), `${rowCount} 篇资料`);
     const geometry = [];
     for (const [name, route, selector, limit] of [
       ["route", urls.route, "[data-study-section=full] ol a", 650],
@@ -787,7 +767,7 @@ await check(
     await expectDraft(page, "手机自测");
     await go("page-that-does-not-exist");
     await page.getByRole("heading", { name: /这一页/ }).waitFor();
-    await page.getByRole("link", { name: /回到专题资料/ }).click();
+    await page.getByRole("link", { name: /回到资料库/ }).click();
     await page.locator(".library-page").waitFor();
   },
 );

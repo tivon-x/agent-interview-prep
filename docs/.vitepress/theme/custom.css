@@ -690,6 +690,22 @@ svg {
 .topic-nav button > span:last-child {
   margin-left: auto;
 }
+.topic-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.source-filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--vp-c-text-2);
+}
+.source-filters select {
+  max-width: 100%;
+}
 .topic-nav button[aria-pressed="true"] {
   background: var(--vp-c-brand-soft);
   color: var(--vp-c-brand-1);

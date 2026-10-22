@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from "vue";
 import { withBase } from "vitepress";
 import { study } from "../study-state.js";
 import { data as catalog } from "../data/catalog.data.js";
+import { sources, topics, pagePath } from "../data/navigation.js";
 const ready = ref(false);
 onMounted(() => {
   ready.value = true;
@@ -10,12 +11,12 @@ onMounted(() => {
 const latest = computed(() =>
   ready.value
     ? Object.entries(study.data.reading)
-        .filter(([url]) => catalog.some((p) => withBase(p.url) === url))
+        .filter(([url]) => catalog.some((p) => pagePath(withBase(p.url)) === pagePath(url)))
         .sort((a, b) => b[1].updatedAt - a[1].updatedAt)[0]
     : undefined,
 );
 const continueTitle = computed(
-  () => catalog.find((p) => withBase(p.url) === latest.value?.[0])?.title,
+  () => catalog.find((p) => latest.value && pagePath(withBase(p.url)) === pagePath(latest.value[0]))?.title,
 );
 const stages = [
   {
@@ -42,16 +43,6 @@ const stages = [
     label: "进入闭卷练习",
     note: "360 题 · 个人自测",
   },
-];
-const topics = [
-  "大模型基础",
-  "Agent 工程",
-  "RAG 与检索",
-  "评测与安全",
-  "后端与系统设计",
-  "机器学习基础",
-  "深度学习基础",
-  "笔试与企业认知",
 ];
 const href = withBase;
 </script>
@@ -131,17 +122,17 @@ const href = withBase;
     </section>
     <section class="home-library">
       <div class="section-heading">
-        <p class="eyebrow">THE LIBRARY / 专题资料</p>
-        <h2>一份有顺序的<br />知识目录。</h2>
-        <a class="text-link" :href="href('/library')">浏览全部资料 ↗</a>
+        <p class="eyebrow">THE LIBRARY / 资料库</p>
+        <h2>按资料来源，<br />沿原有目录读。</h2>
+        <a class="text-link" :href="href('/library')">进入资料库 ↗</a>
       </div>
       <div class="topic-list">
         <a
-          v-for="(topic, i) in topics"
-          :key="topic"
-          :href="href('/library?topic=' + encodeURIComponent(topic))"
+          v-for="(source, i) in sources"
+          :key="source.id"
+          :href="href('/library?source=' + source.id)"
           ><span>{{ String(i + 1).padStart(2, "0") }}</span>
-          <h3>{{ topic }}</h3>
+          <h3>{{ source.title }}</h3>
           <span aria-hidden="true">↗</span></a
         >
       </div>

@@ -17,6 +17,7 @@ import {
 } from "vitepress";
 import { VPNavBarSearch } from "vitepress/theme-without-fonts";
 import { data as catalog } from "./data/catalog.data.js";
+import { chapterList, pagePath, sourceFor } from "./data/navigation.js";
 import { initStudy, study, saveStudy } from "./study-state.js";
 
 const HomePage = defineAsyncComponent(
@@ -55,39 +56,28 @@ const kind = computed(() =>
       }[page.value.relativePath] || "reader",
 );
 const href = (url) => withBase(encodeURI(decodeURI(url)));
-const cleanPath = computed(() => route.path.replace(/\.html$/, ""));
+const cleanPath = computed(() => pagePath(route.path));
 const metadata = computed(() =>
   catalog.find((p) => href(p.url) === cleanPath.value),
 );
-function flatten(items) {
-  return items.flatMap((i) => [
-    ...(i.link ? [{ title: i.text, url: i.link }] : []),
-    ...flatten(i.items || []),
-  ]);
-}
+const documentUrl = computed(() => metadata.value?.url || "/" + page.value.relativePath.replace(/\.md$/, ""));
+const source = computed(() => sourceFor(documentUrl.value));
+const libraryUrl = computed(() => "/library" + (source.value ? "?source=" + source.value.id : ""));
+const questionPages = [
+  { title: "360 题题库", url: "/byte-agent/question-bank" },
+  { title: "闭卷练习", url: "/byte-agent/practice" },
+  { title: "逐题解析", url: "/byte-agent/analysis" },
+  { title: "冲刺安排", url: "/byte-agent/review-plan" },
+];
+const activeNav = computed(() => {
+  if (kind.value === "route") return "/reading-path";
+  if (kind.value === "project") return "/notes/project-defense";
+  if (documentUrl.value.startsWith("/byte-agent/")) return "/byte-agent/question-bank";
+  if (kind.value === "library" || source.value || page.value.relativePath === "sources.md") return "/library";
+});
 const chapters = computed(() => {
-  const own = catalog
-    .filter((p) => p.collection || p.links.length > 2)
-    .filter((p) =>
-      cleanPath.value.startsWith(
-        href(p.url.replace(/(?:index|README)?(?:\.html)?$/, "")),
-      ),
-    )
-    .sort((a, b) => b.url.length - a.url.length)
-    .find((p) => p.links.includes(metadata.value?.url));
-  if (own)
-    return [
-      { title: own.title, url: own.url },
-      ...own.links
-        .map((url) => catalog.find((p) => p.url === url))
-        .filter(Boolean),
-    ];
-  const key = Object.keys(theme.value.sidebar || {})
-    .sort((a, b) => b.length - a.length)
-    .find((prefix) => cleanPath.value.startsWith(href(prefix)));
-  return flatten(theme.value.sidebar?.[key] || []).filter(
-    (p, n, all) => all.findIndex((i) => i.url === p.url) === n,
-  );
+  if (documentUrl.value.startsWith("/byte-agent/")) return questionPages;
+  return chapterList(documentUrl.value, catalog);
 });
 const adjacent = computed(() => {
   const index = chapters.value.findIndex(
@@ -307,7 +297,7 @@ onUnmounted(() => {
           :key="item.link"
           :href="href(item.link)"
           :aria-current="
-            cleanPath.startsWith(href(item.link)) ? 'page' : undefined
+            activeNav === item.link ? 'page' : undefined
           "
           >{{ item.text }}</a
         >
@@ -354,14 +344,14 @@ onUnmounted(() => {
         <h1>这一页，<br />还没有被写下。</h1>
         <p>页面不存在，或资料快照未收录该章节。</p>
         <a class="primary-button" :href="href('/library')"
-          >回到专题资料 <span>↗</span></a
+          >回到资料库 <span>↗</span></a
         ><button class="text-button" @click="search">搜索文档</button
         ><a :href="href('/')">回首页</a
         ><a :href="href('/sources')">查看来源与快照范围</a>
       </section>
       <div v-else class="reader-frame VPDoc">
         <aside class="chapter-rail" aria-label="章节导航">
-          <a class="rail-back" :href="href('/library')">← 专题资料</a>
+          <a class="rail-back" :href="href(libraryUrl)">← {{ source?.title || "资料库" }}</a>
           <nav>
             <a
               v-for="(chapter, index) in chapters"
@@ -374,9 +364,8 @@ onUnmounted(() => {
         </aside>
         <div class="reader-column">
           <div class="reader-tools">
-            <a :href="href('/library')"
-              >{{ metadata?.category || "学习资料" }} /
-              {{ metadata?.source || "个人复习" }}</a
+            <a :href="href(libraryUrl)"
+              >资料库 / {{ source?.title || (documentUrl.startsWith('/byte-agent/') ? '360 题自测' : '资料来源') }}</a
             >
             <div class="reader-actions">
               <div class="reader-navigation">
@@ -472,6 +461,7 @@ onUnmounted(() => {
           v-for="item in theme.nav"
           :key="item.link"
           :href="href(item.link)"
+          :aria-current="activeNav === item.link ? 'page' : undefined"
           @click="mobileMenu.close()"
           >{{ item.text }} ↗</a
         ><a :href="href('/sources')" @click="mobileMenu.close()">资料来源</a>

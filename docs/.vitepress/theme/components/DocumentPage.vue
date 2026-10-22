@@ -252,7 +252,7 @@ onUnmounted(() => {
       </aside>
     </div>
     <div class="document-return">
-      <a :href="withBase('/library')">← 浏览专题资料</a
+      <a :href="withBase('/library')">← 浏览资料库</a
       ><a :href="withBase('/byte-agent/practice?q=Q001')"
         >合上资料，练习表达 ↗</a
       >

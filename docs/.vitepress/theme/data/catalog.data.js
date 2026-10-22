@@ -1,16 +1,8 @@
 import { createContentLoader, createMarkdownRenderer } from "vitepress";
 import path from "node:path";
+import { topics, sourceFor } from "./navigation.js";
 
-export const categories = [
-  "大模型基础",
-  "Agent 工程",
-  "RAG 与检索",
-  "评测与安全",
-  "后端与系统设计",
-  "机器学习基础",
-  "深度学习基础",
-  "笔试与企业认知",
-];
+export const categories = topics;
 export function topic(url) {
   if (/\/notes\/china-mobile\//.test(url)) return "笔试与企业认知";
   if (/\/notes\/(ml-basics|ml-dl-practice)\//.test(url)) return "机器学习基础";
@@ -33,15 +25,7 @@ export function topic(url) {
   return categories[1];
 }
 export function source(url) {
-  const names = {
-    "llm-agent-interview-guide": "LLM Agent Guide",
-    zero2agent: "Zero2Agent",
-    javaguide: "JavaGuide",
-    "hello-agents": "Hello Agents",
-    "ai-agent-interview-guide": "AI Agent Interview Guide",
-    "system-design-primer": "System Design Primer",
-  };
-  return names[url.split("/")[2]] || "个人笔记";
+  return sourceFor(url)?.title || "个人笔记";
 }
 export default createContentLoader(["materials/**/*.md", "notes/**/*.md"], {
   includeSrc: true,

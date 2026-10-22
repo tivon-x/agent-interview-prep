@@ -5,7 +5,8 @@
     "dev": "vitepress dev docs",
     "build": "vitepress build docs",
     "preview": "vite preview --config scripts/preview.config.mjs",
-    "verify:ui": "node scripts/verify-ui.mjs"
+    "verify:ui": "node scripts/verify-ui.mjs",
+    "verify:navigation": "node scripts/verify-navigation.mjs"
   },
   "devDependencies": {
     "markdown-it-mathjax3": "^4.3.2",
