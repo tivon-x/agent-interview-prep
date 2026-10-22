@@ -60,13 +60,14 @@ await check("overview and chapters share one directory and contextual return", a
   await page.locator('.chapter-rail a[aria-current="page"]').waitFor();
   const overview = await chapters();
   await page.locator('.chapter-rail nav a[href$="/01-generalization"]').click();
-  await page.locator('.reader-body h1').waitFor();
+  await page.locator('.reader-body h1').filter({ hasText: "泛化" }).waitFor();
   assert.deepEqual(await chapters(), overview);
   assert.match(await page.locator(".rail-back").getAttribute("href"), /library\?source=personal/);
   assert.equal(await page.locator('.desktop-nav a[aria-current="page"]').innerText(), "资料库");
   assert.ok(overview.every((p) => p.href.includes("/notes/ml-basics/")));
   await page.locator('.reader-pagination a').last().click();
   await page.waitForURL(/02-evaluation$/);
+  await page.locator('.chapter-rail a[aria-current="page"][href$="/02-evaluation"]').waitFor();
   assert.deepEqual(await chapters(), overview);
   await page.locator(".rail-back").click();
   await page.getByRole("button", { name: /个人笔记/, pressed: true }).waitFor();
@@ -112,6 +113,7 @@ await check("source overview and child keep source order instead of unrelated di
   assert.ok(overview.every((p) => p.href.includes("/javaguide/docs/cs-basics/network/")));
   await page.locator('.chapter-rail nav a[href$="/http-vs-https"]').click();
   await page.waitForURL(/http-vs-https$/);
+  await page.locator('.chapter-rail a[aria-current="page"][href$="/http-vs-https"]').waitFor();
   assert.deepEqual(await chapters(), overview);
   assert.equal(await page.locator('.chapter-rail [aria-current="page"]').count(), 1);
   await go("materials/zero2agent/learn-agent-interview/");
