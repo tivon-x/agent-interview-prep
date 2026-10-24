@@ -7,6 +7,7 @@ const props = defineProps({ scope: { type: String, default: "all" } });
 const bank = ref(null), paperId = ref(""), number = ref(0);
 const picked = ref(""), revealed = ref(false), busy = ref(false);
 const error = ref(""), storageMessage = ref("");
+const ready = ref(false);
 const scope = computed(() => examScopes[props.scope] || examScopes.all);
 const available = computed(() => (bank.value?.papers || []).filter(p => Object.hasOwn(scope.value, p.id)));
 const questions = computed(() => {
@@ -33,6 +34,7 @@ watch(questions, () => {
 watch([bank, paperId, number, () => props.scope], () => { picked.value = ""; revealed.value = false; });
 
 onMounted(() => {
+  ready.value = true;
   try {
     const raw = localStorage.getItem(examStorageKey);
     if (raw) {
@@ -79,8 +81,8 @@ function move(step) { number.value = questions.value[position.value + step].numb
         <p class="exam-caption">{{ bank ? `本页可练 ${count} 题，沿用试卷原题号。` : '导入一次，在这里查看完整题干和选项。' }}</p>
       </div>
       <label class="file-button">
-        {{ busy ? '正在读取' : bank ? '更换题目文件' : '导入题目文件' }}
-        <input type="file" accept=".json,application/json" :disabled="busy" aria-label="导入本地题目文件" @change="importFile" />
+        {{ busy ? '正在读取' : !ready ? '正在准备' : bank ? '更换题目文件' : '导入题目文件' }}
+        <input type="file" accept=".json,application/json" :disabled="busy || !ready" aria-label="导入本地题目文件" @change="importFile" />
       </label>
     </div>
     <p v-if="!bank" class="exam-help">选择本次整理的四套卷 JSON 文件。题目只保存在当前浏览器，不上传；换设备或清除浏览器数据后需要重新导入。</p>

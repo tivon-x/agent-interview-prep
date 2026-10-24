@@ -17,9 +17,18 @@ const page = await context.newPage();
 const errors = [], checks = [];
 page.on("pageerror", e => errors.push(e.message));
 const widget = page.locator(".local-exams");
-const upload = value => widget.getByLabel("导入本地题目文件").setInputFiles({
-  name: "questions.json", mimeType: "application/json", buffer: Buffer.from(typeof value === "string" ? value : JSON.stringify(value)),
-});
+async function importReady(p) {
+  await p.waitForFunction(() => {
+    const input = document.querySelector('.local-exams input[type="file"]');
+    return input && !input.disabled;
+  });
+}
+async function upload(value) {
+  await importReady(page);
+  await widget.getByLabel("导入本地题目文件").setInputFiles({
+    name: "questions.json", mimeType: "application/json", buffer: Buffer.from(typeof value === "string" ? value : JSON.stringify(value)),
+  });
+}
 async function open(slug = "") {
   await page.goto(base + "notes/china-mobile/" + slug);
   await widget.waitFor();
@@ -32,6 +41,23 @@ async function select(paper, number) {
 async function check(name, fn) { await fn(); checks.push(name); console.log("PASS " + name); }
 
 try {
+  await check("cold render keeps import disabled until its handler is ready", async () => {
+    const c = await browser.newContext();
+    let release;
+    const gate = new Promise(resolve => { release = resolve; });
+    await c.route(/\/assets\/LocalExamQuestions\.[^/]+\.js$/, async route => { await gate; await route.continue(); });
+    const p = await c.newPage();
+    try {
+      await p.goto(base + "notes/china-mobile/", { waitUntil: "commit" });
+      const input = p.getByLabel("导入本地题目文件");
+      await input.waitFor({ state: "attached" });
+      assert.equal(await input.isDisabled(), true);
+      release();
+      await importReady(p);
+      await input.setInputFiles(file);
+      await p.locator(".exam-question").waitFor();
+    } finally { release(); await c.close(); }
+  });
   await check("fresh browser has import controls and no original questions", async () => {
     await open();
     assert.equal(await widget.getByLabel("导入本地题目文件").count(), 1);
@@ -160,6 +186,7 @@ try {
       const p = await c.newPage();
       await p.goto(base + "notes/china-mobile/");
       const w = p.locator(".local-exams");
+      await importReady(p);
       await w.getByLabel("导入本地题目文件").setInputFiles(file);
       await w.locator(".exam-question").waitFor();
       assert.match(await w.innerText(), /325 题/);
