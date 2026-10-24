@@ -28,4 +28,8 @@ npm run preview
 
 导航回归可在构建并启动预览后运行 `npm run verify:navigation`；截图、检查结果与浏览器 trace 保存在 `output/playwright/navigation/`。
 
+中国移动专题支持在浏览器导入配套 JSON，查看原题、选项和解析。四套卷共 325 道非图形题，题目文件只保存在本地，不进入 Git 或站点构建；页面会优先显示已核验的勘误，未经独立核验的答案另作标注。配套文件放在 `output/private/china-mobile-questions.json`。
+
+原题查看器回归使用 `node scripts/verify-local-exams.mjs <预览地址> <本地题目文件>`，覆盖导入、刷新恢复、章节筛选、勘误、异常文件、存储受限和手机端展示。验证截图与 trace 保存在 `output/playwright/local-exam/`。
+
 本站用于个人学习。第三方资料的版权属于原作者，具体来源见[资料索引](docs/sources.md)。

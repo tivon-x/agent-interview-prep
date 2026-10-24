@@ -12,5 +12,9 @@ export default {
       "Mermaid",
       defineAsyncComponent(() => import("./components/StudyMermaid.vue")),
     );
+    ctx.app.component(
+      "LocalExamQuestions",
+      defineAsyncComponent(() => import("./components/LocalExamQuestions.vue")),
+    );
   },
 };
