@@ -91,9 +91,10 @@
 
 ### 5. 个人补充与项目证据
 
-1. [项目深挖](notes/project-defense.md)：把 Agentic RAG、Deep Research、Forge 的实现与边界整理成自己的话。
-2. [前沿技术补充](notes/frontier.md)：核对需要补读的主题。
-3. [资料来源与快照范围](sources.md)：确认哪些内容在本站，哪些需要回原站阅读。
+1. [面试自我介绍](notes/self-introduction.md)：按学习、实习和项目组织约 2 分半到 3 分钟的开场。
+2. [项目深挖](notes/project-defense.md)：把 Agentic RAG、Deep Research、Forge 的实现与边界整理成自己的话。
+3. [前沿技术补充](notes/frontier.md)：核对需要补读的主题。
+4. [资料来源与快照范围](sources.md)：确认哪些内容在本站，哪些需要回原站阅读。
 
 ### 按需补充：中国移动科技岗笔试
 
