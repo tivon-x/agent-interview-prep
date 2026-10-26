@@ -19,6 +19,14 @@
 
 > **30 秒讲法**：这是面向个人论文库的 RAG 系统。上传的论文先经过解析、质量检查和版本化索引；提问时用关键词与向量两路召回、融合和重排筛选证据，最后生成带来源和局限说明的答案。重点是答案能回到论文、章节与页码，并能定位错误发生在哪一环。
 
+### 项目指南与示意图
+
+[深入阅读：Agentic RAG 项目指南](/notes/project-defense/agentic-rag-guide)
+
+[![Agentic RAG 整体检索流程图](/project-defense/agentic-rag-retrieval.png)](/project-defense/agentic-rag-retrieval.png)
+
+点击图片可打开原图放大查看。
+
 ### 从文档到答案
 
 1. **入库**：解析论文，检查文本质量，保存论文、章节、页码和可检索段落；新索引通过校验后才激活，失败时旧索引仍可用。
@@ -79,6 +87,25 @@
 
 > **30 秒讲法**：这是面向开放问题的多 Agent 研究系统。它先把问题变成研究范围并等待审批，再由中央编排器把任务分给研究者；每项任务的身份、输入和产物由服务端确定。研究结果经过任务审查、全局缺口检查和逐条陈述核验，才能写成报告。
 
+### 项目指南与示意图
+
+[深入阅读：Deep Research 项目指南](/notes/project-defense/deep-research-guide)
+
+[![Deep Research 从用户问题到最终回答](/project-defense/deep-research-01-main-flow.png)](/project-defense/deep-research-01-main-flow.png)
+
+<details>
+<summary>展开三张细节图：任务分派、证据质量、预算与恢复</summary>
+
+[![Deep Research 整体结构与任务分派](/project-defense/deep-research-02-architecture-dispatch.png)](/project-defense/deep-research-02-architecture-dispatch.png)
+
+[![Deep Research 取证与报告放行](/project-defense/deep-research-03-evidence-quality.png)](/project-defense/deep-research-03-evidence-quality.png)
+
+[![Deep Research 预算恢复与数据保存](/project-defense/deep-research-04-budget-state-recovery.png)](/project-defense/deep-research-04-budget-state-recovery.png)
+
+</details>
+
+点击图片可打开原图放大查看。
+
 ### 一次研究如何完成
 
 1. **确定范围**：Scoping 产出研究概要，人工批准后才进入研究，避免系统快速搜索错误问题。
@@ -128,6 +155,25 @@ LangGraph 把执行快照（checkpoint）存入 SQLite。中断后，运行中�
 ## Forge
 
 > **30 秒讲法**：Forge 是本地编码 Agent 命令行工具。它用 LangChain 官方 `create_agent` 执行模型与工具循环，Forge 自己负责会话、取消、事件投影和交互；编码层装配项目资源与文件工具，CLI/TUI 负责展示。重点是长任务中工具调用、人工输入、持久化和恢复如何保持一致。
+
+### 项目指南与示意图
+
+[深入阅读：Forge 项目指南](/notes/project-defense/forge-guide)
+
+[![Forge 执行链路总览](/project-defense/forge-execution-overview.png)](/project-defense/forge-execution-overview.png)
+
+<details>
+<summary>展开三张补充图：架构总览、执行细节与交互路径</summary>
+
+[![Forge 架构总览](/project-defense/forge-architecture.png)](/project-defense/forge-architecture.png)
+
+[![Forge 执行链路细节](/project-defense/forge-execution-details.png)](/project-defense/forge-execution-details.png)
+
+[![Forge 子 Agent 与人工问答交互路径](/project-defense/forge-execution-interaction.png)](/project-defense/forge-execution-interaction.png)
+
+</details>
+
+点击图片可打开原图放大查看。图中标注的代码基线为 `f016e65`，与指南保留的基线可能不同；具体行为以对应版本源码为准。
 
 ### 一次编码请求怎样流转
 
