@@ -60,7 +60,7 @@ INSERT INTO exam_record (uid, exam_id, start_time, submit_time, score) VALUES
 | submit_time | datetime   | YES  |     |                | (NULL)  | 提交时间 |
 | score       | tinyint(4) | YES  |     |                | (NULL)  | 得分     |
 
-我们已经创建了一张新表`exam_record_before_2021`用来备份 2021 年之前的试题作答记录，结构和`exam_record`表一致，请将 2021 年之前的已完成了的试题作答纪录导入到该表。
+备份表 `exam_record_before_2021` 与 `exam_record` 结构相同。将 2021 年之前已完成的作答记录导入备份表。
 
 **答案**：
 
@@ -175,7 +175,7 @@ TIMEDIFF(time1, time2)
 
 两者参数都是必须的，都是一个时间或者日期时间表达式。如果指定的参数不合法或者是 NULL，那么函数将返回 NULL。
 
-对于这题而言，可以用在 minute 函数里面，因为 TIMEDIFF 计算出来的是时间的差值，在外面套一个 MINUTE 函数，计算出来的就是分钟数。
+`MINUTE()` 只提取时间值中的分钟部分，不代表总分钟数。例如时长为 1 小时 2 分钟时，`MINUTE(TIMEDIFF(...))` 得到 2，不能用于本题的总时长比较。
 
 2. `TIMESTAMPDIFF`：用于计算两个日期的时间差
 
@@ -194,13 +194,15 @@ YEAR：年
 # TIMESTAMPDIFF函数返回datetime_expr2 - datetime_expr1的结果（人话： 后面的 - 前面的  即2-1），其中datetime_expr1和datetime_expr2可以是DATE或DATETIME类型值（人话：可以是“2023-01-01”， 也可以是“2023-01-01- 00:00:00”）
 ```
 
-这题需要进行分钟的比较，那么就是 TIMESTAMPDIFF(MINUTE, 开始时间， 结束时间) < 5
+比较总分钟数可使用 `TIMESTAMPDIFF(MINUTE, start_time, submit_time) < 5`。
 
-**答案**：
+**反例**：下面的写法只检查分钟部分，时长超过一小时时可能误删记录。
 
 ```sql
 DELETE FROM exam_record WHERE MINUTE (TIMEDIFF(submit_time , start_time)) < 5 AND score < 60
 ```
+
+**参考解答**：
 
 ```sql
 DELETE FROM exam_record WHERE TIMESTAMPDIFF(MINUTE, start_time, submit_time) < 5 AND score < 60
@@ -225,7 +227,7 @@ DELETE FROM exam_record WHERE TIMESTAMPDIFF(MINUTE, start_time, submit_time) < 5
 
 **思路**：结束时间为 NULL 表示未完成。
 
-还有一个条件就是小于 5 分钟，跟上题类似，但是这里是**或**，即两个条件满足一个就行；另外就是稍微考察到了排序和 limit 的用法。
+未完成与作答时间不足 5 分钟是“或”关系；按开始时间升序，最多删除 3 条。
 
 **答案**：
 
@@ -259,9 +261,9 @@ LIMIT 3
 
 这里选用`TRUNCATE`的原因是：TRUNCATE 只能作用于表；`TRUNCATE`会清空表中的所有行，但表结构及其约束、索引等保持不变；`TRUNCATE`会重置表的自增值；使用`TRUNCATE`后会使表和索引所占用的空间会恢复到初始大小。
 
-这题也可以采用`DELETE`来做，但是在删除后，还需要手动`ALTER`表结构来设置主键初始值；
+`DELETE` 也可删除全部行，但自增值不会因此自动重置；是否需要调整应按业务和数据库版本判断。
 
-同理也可以采用`DROP`来做，直接删除整张表，包括表结构，然后再新建表即可。
+`DROP` 删除的是整张表及其结构，与清空行的 `DELETE`、`TRUNCATE` 不等价。
 
 **答案**：
 

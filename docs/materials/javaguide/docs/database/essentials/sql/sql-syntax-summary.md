@@ -142,9 +142,9 @@ DROP DATABASE demo;
 
 ```sql
 START TRANSACTION;
+SAVEPOINT before_raise;
 UPDATE employee SET salary = salary + 100 WHERE id = 1;
-SAVEPOINT after_raise;
-ROLLBACK TO SAVEPOINT after_raise;
+ROLLBACK TO SAVEPOINT before_raise;
 COMMIT;
 ```
 

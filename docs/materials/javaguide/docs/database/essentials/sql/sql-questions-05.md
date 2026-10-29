@@ -32,7 +32,7 @@ title: SQL常见面试题总结（5）
 
 **思路**：
 
-这题只需要注意一个是有条件限制，一个是没条件限制的；要么分别查询条件，然后合并；要么直接在 select 里面进行条件判断。
+按试卷分组，用条件聚合计算未完成数和总作答数，再计算比例。
 
 **答案**：
 
@@ -209,17 +209,29 @@ ORDER BY UID
 
 因此最终满足条件的只有 1002。
 
-**思路**：
+**思路**：先将试卷和练习的提交时间合并，求每个用户的最近提交时间，再判断它是否在 2021 年 9 月。以下按上游 SQL 的口径，将 `submit_time` 作为活跃时间，未提交的记录不计入。
 
-先根据条件列出主要查询语句
+**参考解答**：
 
-昵称以『牛客』开头『号』结尾: `nick_name LIKE "牛客%号"`
+```sql
+SELECT u.uid, u.nick_name, u.achievement
+FROM user_info AS u
+JOIN (
+    SELECT uid, MAX(submit_time) AS last_active
+    FROM (
+        SELECT uid, submit_time FROM exam_record
+        UNION ALL
+        SELECT uid, submit_time FROM practice_record
+    ) AS activity
+    GROUP BY uid
+) AS recent ON recent.uid = u.uid
+WHERE u.nick_name LIKE '牛客%号'
+  AND u.achievement BETWEEN 1200 AND 2500
+  AND recent.last_active >= '2021-09-01'
+  AND recent.last_active < '2021-10-01';
+```
 
-成就值在 1200~2500 之间：`achievement BETWEEN 1200 AND 2500`
-
-第三个条件因为限定了为 9 月，所以直接写就行：`( date_format( record.submit_time, '%Y%m' )= 202109 OR date_format( pr.submit_time, '%Y%m' )= 202109 )`
-
-**答案**：
+**上游反例**：以下写法只检查是否存在 9 月的记录，并未判断它是否为最近一次活跃；用户在 9 月有记录、10 月又活跃时也会被误选。
 
 ```sql
 SELECT DISTINCT u_info.uid,
@@ -301,15 +313,9 @@ c 开头的试卷有 9001、9002；
 
 **思路**：
 
-还是老样子，既然给出了条件，就先把各个条件先写出来
+**思路**：按昵称规则筛选用户，再筛选以 c 或 C 开头的试卷类别，按用户和试卷分组计算已完成记录的平均分。`LIKE` 的大小写行为取决于排序规则；正则匹配应使用 `REGEXP` 或 `RLIKE`，不能把正则模式直接交给 `LIKE`。
 
-找到昵称以"牛客"+纯数字+"号"或者纯数字组成的用户： 我最开始是这么写的：`nick_name LIKE '牛客%号' OR nick_name REGEXP '^[0-9]+$'`，如果表中有个 “牛客 H 号” ，那也能通过。
-
-所以这里还得用正则： `nick_name LIKE '^牛客[0-9]+号'`
-
-对于字母 c 开头的试卷类别： `e_info.tag LIKE 'c%'` 或者 `tag regexp '^c|^C'` 第一个也能匹配到大写 C
-
-**答案**：
+**上游答案，待核验**：正则 `^牛客[0-9]+号 $` 要求“牛客”后紧跟数字且“号”后有空格，与表格中展示的 `牛客 2 号` 不一致。样例空格是否属于真实数据需要确认；按实际数据约定修正模式后再运行。
 
 ```sql
 SELECT UID,
@@ -629,7 +635,7 @@ CASE
 END
 ```
 
-这题的关键点就在于这，其他剩下的就是条件拼接了
+按题目条件过滤后，再计算对应的聚合结果。
 
 **答案**：
 
@@ -824,7 +830,7 @@ LIMIT 6,3
 
 **思路**：
 
-先来学习下本题要用到的函数
+本题使用 `SUBSTRING_INDEX` 按分隔符提取字段：
 
 `SUBSTRING_INDEX` 函数用于提取字符串中指定分隔符的部分。它接受三个参数：原始字符串、分隔符和指定要返回的部分的数量。
 
@@ -910,7 +916,7 @@ WHERE
 
 **思路**：
 
-这题涉及到字符的计算，要计算字符串的字符数（即字符串的长度），可以使用 `LENGTH` 函数或 `CHAR_LENGTH` 函数。这两个函数的区别在于对待多字节字符的方式。
+MySQL 中 `LENGTH` 计算字节数，`CHAR_LENGTH` 计算字符数；本题按字符数判断。
 
 1. `LENGTH` 函数：它返回给定字符串的字节数。对于包含多字节字符的字符串，每个字符都会被当作一个字节来计算。
 
@@ -1006,7 +1012,7 @@ GROUP BY
 
 **思路**：
 
-首先，这题有点混乱，9004 根据示例数据查出来只有 1 次，这里显示有 2 次。
+**待核验**：按展示的示例数据，试卷 9004 只出现 1 次，示例结果却显示 2 次；需核对完整题目数据。
 
 先看一下大小写转换函数：
 

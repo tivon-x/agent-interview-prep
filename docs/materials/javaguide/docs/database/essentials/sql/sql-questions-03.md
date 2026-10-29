@@ -50,135 +50,13 @@ title: SQL常见面试题总结（3）
 
 输入数据中至少有 3 个有效分数
 
-**思路一：** 关联试卷信息和作答记录，筛选 SQL 类别、高难度试卷及有效分数。
+**思路**：关联试卷信息和作答记录，筛选 SQL 类别、高难度试卷，以 `(总分 - 最高分 - 最低分) / (有效分数数量 - 2)` 计算。输入至少有三个有效分数；即使最大值或最小值并列，也各只减去一次。
 
-先找出 9001 号考试 `select * from exam_record where exam_id = 9001`
+**易错点**：不要用 `NOT IN (MAX(score), MIN(score))` 排除极值，它会删除所有并列的最高分和最低分。示例试卷 ID 不能写死；使用单行子查询时，多个匹配试卷也会使子查询返回多行。
 
-然后，找出最高分 `select max(score) 最高分 from exam_record where exam_id = 9001`
+公共表表达式（CTE）可用 `WITH` 为子查询命名，便于复用；MySQL 8.0 支持，5.7 不支持。将上述 `NOT IN` 写进 CTE 不会消除并列极值的问题。
 
-接着，找出最低分 `select min(score) 最低分 from exam_record where exam_id = 9001`
-
-在查询出来的分数结果集当中，去掉最高分和最低分，最直观能想到的就是 NOT IN 或者 用 NOT EXISTS 也行，这里以 NOT IN 来做
-
-首先将主体写出来`select tag, difficulty, round(avg(score), 1) clip_avg_score from examination_info info INNER JOIN exam_record record`
-
-**小 tips** : MYSQL 的 `ROUND()` 函数 ,`ROUND(X)`返回参数 X 最近似的整数 `ROUND(X,D)`返回 X ,其值保留到小数点后 D 位,第 D 位的保留方式为四舍五入。
-
-再将上面的 "碎片" 语句拼凑起来即可， 注意在 NOT IN 中两个子查询用 UNION ALL 来关联，用 union 把 max 和 min 的结果集中在一行当中，这样形成一列多行的效果。
-
-**反例一：** 以下 `NOT IN` 会删掉所有并列的最高分和最低分，而题目只要求各删除一条；其中硬编码考试 ID 的版本还限定了示例数据，不能作为通用解法。
-
-```sql
-SELECT tag, difficulty, ROUND(AVG(score), 1) clip_avg_score
-	FROM examination_info info  INNER JOIN exam_record record
-		WHERE info.exam_id = record.exam_id
-			AND  record.exam_id = 9001
-				AND record.score NOT IN(
-					SELECT MAX(score)
-						FROM exam_record
-							WHERE exam_id = 9001
-								UNION ALL
-					SELECT MIN(score)
-						FROM exam_record
-							WHERE exam_id = 9001
-				)
-```
-
-这是最直观，也是最容易想到的解法，但是还有待改进，这算是投机取巧过关，其实严格按照题目要求应该这么写：
-
-```sql
-SELECT tag,
-       difficulty,
-       ROUND(AVG(score), 1) clip_avg_score
-FROM examination_info info
-INNER JOIN exam_record record
-WHERE info.exam_id = record.exam_id
-  AND record.exam_id =
-    (SELECT examination_info.exam_id
-     FROM examination_info
-     WHERE tag = 'SQL'
-       AND difficulty = 'hard' )
-  AND record.score NOT IN
-    (SELECT MAX(score)
-     FROM exam_record
-     WHERE exam_id =
-         (SELECT examination_info.exam_id
-          FROM examination_info
-          WHERE tag = 'SQL'
-            AND difficulty = 'hard' )
-     UNION ALL SELECT MIN(score)
-     FROM exam_record
-     WHERE exam_id =
-         (SELECT examination_info.exam_id
-          FROM examination_info
-          WHERE tag = 'SQL'
-            AND difficulty = 'hard' ) )
-```
-
-然而你会发现，重复的语句非常多，所以可以利用`WITH`来抽取公共部分
-
-**`WITH` 子句介绍**：
-
-`WITH` 子句，也称为公共表表达式（Common Table Expression，CTE），是在 SQL 查询中定义临时表的方式。它可以让我们在查询中创建一个临时命名的结果集，并且可以在同一查询中引用该结果集。
-
-基本用法：
-
-```sql
-WITH cte_name (column1, column2, ..., columnN) AS (
-    -- 查询体
-    SELECT ...
-    FROM ...
-    WHERE ...
-)
--- 主查询
-SELECT ...
-FROM cte_name
-WHERE ...
-```
-
-`WITH` 子句由以下几个部分组成：
-
-- `cte_name`: 给临时表起一个名称，可以在主查询中引用。
-- `(column1, column2, ..., columnN)`: 可选，指定临时表的列名。
-- `AS`: 必需，表示开始定义临时表。
-- `CTE 查询体`: 实际的查询语句，用于定义临时表中的数据。
-
-`WITH` 子句的主要用途之一是增强查询的可读性和可维护性，尤其在涉及多个嵌套子查询或需要重复使用相同的查询逻辑时。通过将这些逻辑放在一个命名的临时表中，我们可以更清晰地组织查询，并消除重复代码。
-
-此外，`WITH` 子句还可以在复杂的查询中实现递归查询。递归查询允许我们在单个查询中执行对同一表的多次迭代，逐步构建结果集。这在处理层次结构数据、组织结构和树状结构等场景中非常有用。
-
-**版本**：MySQL 5.7 不支持 `WITH` 公共表表达式；MySQL 8.0 支持。
-
-下面的 CTE 写法同样使用 `NOT IN`，并列极值时仍会多删，只供对照；通用解法见答案二。
-
-```sql
-WITH t1 AS
-  (SELECT record.*,
-          info.tag,
-          info.difficulty
-   FROM exam_record record
-   INNER JOIN examination_info info ON record.exam_id = info.exam_id
-   WHERE info.tag = "SQL"
-     AND info.difficulty = "hard" )
-SELECT tag,
-       difficulty,
-       ROUND(AVG(score), 1)
-FROM t1
-WHERE score NOT IN
-    (SELECT max(score)
-     FROM t1
-     UNION SELECT min(score)
-     FROM t1)
-```
-
-**思路二：**
-
-- 筛选 SQL 高难度试卷：`where tag="SQL" and difficulty="hard"`
-- 计算截断平均值：`(和-最大值-最小值) / (总个数-2)`:
-  - `(sum(score) - max(score) - min(score)) / (count(score) - 2)`
-  - 重复极值时只减去一个最大值与一个最小值，符合题意；需要至少三个有效分数。
-
-**答案二：**
+**参考解答：**
 
 ```sql
 SELECT info.tag,
@@ -191,7 +69,7 @@ WHERE info.exam_id = record.exam_id
   AND info.difficulty = "hard";
 ```
 
-原示例使用双引号表示字符串；启用 MySQL `ANSI_QUOTES` 时应改用单引号。若有多份符合条件的试卷，单行子查询方案还需检查是否返回多行。聚合查询与 `ONLY_FULL_GROUP_BY` 的兼容性应结合实际版本和表结构验证。
+原示例使用双引号表示字符串；启用 MySQL `ANSI_QUOTES` 时应改用单引号。聚合查询与 `ONLY_FULL_GROUP_BY` 的兼容性应结合实际版本和表结构验证。
 
 ### 统计作答次数
 
@@ -317,25 +195,17 @@ FROM
 
 **思路**：先求 SQL 类试卷平均分，再从不小于平均分的记录中取最小值。
 
-第一条：找到==SQL==试卷得分
-
-第二条：该类试卷==平均得分==
-
-第三条：该类试卷的==用户最低得分==
-
-然后中间的 “桥梁” 就是==不小于==
-
-将条件拆分后，先逐步完成
+先计算 SQL 类试卷的平均分：
 
 ```sql
 -- 找出tag为‘SQL’的得分   【80, 89,87,90】
 -- 再算出这一组的平均得分
-select  ROUND(AVG(score), 1) from  examination_info info INNER JOIN exam_record record
+select AVG(score) from  examination_info info INNER JOIN exam_record record
 	where info.exam_id = record.exam_id
 	and tag= 'SQL'
 ```
 
-然后再找出该类试卷的最低得分，接着将结果集`【80, 89,87,90】` 去和平均分数作比较，方可得出最终答案。
+再筛选不小于该平均分的成绩，取其中的最小值。
 
 **答案**：
 
@@ -346,14 +216,14 @@ INNER JOIN exam_record record
 WHERE info.exam_id = record.exam_id
   AND tag= 'SQL'
   AND score >=
-    (SELECT ROUND(AVG(score), 1)
+    (SELECT AVG(score)
      FROM examination_info info
      INNER JOIN exam_record record
      WHERE info.exam_id = record.exam_id
        AND tag= 'SQL' )
 ```
 
-其实这类题目给出的要求看似很 “绕”，但其实仔细梳理一遍，将大条件拆分成小条件，逐个拆分完以后，最后将所有条件拼凑起来。反正只要记住：**抓主干，理分支**，问题便迎刃而解。
+比较前不要先四舍五入平均分，否则可能把略低于真实平均分的成绩也选出来；需要展示时再按题目要求格式化。
 
 ## 分组查询
 
@@ -432,13 +302,13 @@ GROUP BY MONTH
 | 202109       | 3           | 0.100         |
 | 2021 汇总    | 5           | 0.161         |
 
-**解释**：2021 年 8 月共有 2 次刷题记录，日均刷题数为 2/31=0.065（保留 3 位小数）；2021 年 9 月共有 3 次刷题记录，日均刷题数为 3/30=0.100；2021 年共有 5 次刷题记录（年度汇总平均无实际意义，这里我们按照 31 天来算 5/31=0.161）
+**解释**：8 月为 `2/31=0.065`，9 月为 `3/30=0.100`。年度汇总行沿用题目给出的 `5/31=0.161`，它不等于按全年天数计算的年日均值。
 
 > MySQL 启用 `ONLY_FULL_GROUP_BY` 时，非聚合列通常需要位于分组列中、依赖于分组列，或被条件约束为单值；应根据实际 SQL 和版本判断。
 
 **思路：**
 
-看到实例数据就要马上联想到相关的函数，比如`submit_month`就要用到`DATE_FORMAT`来格式化日期。然后查出每月的刷题数量。
+用 `DATE_FORMAT` 提取提交月份，再统计每月的刷题数量。
 
 每月的刷题数量
 
@@ -450,24 +320,18 @@ GROUP BY
 	MONTH (submit_time)
 ```
 
-接着第三列这里要用到`DAY(LAST_DAY(date_value))`函数来查找给定日期的月份中的天数。
-
-示例代码如下：
+用 `DAY(LAST_DAY(date_value))` 求对应月份的天数：
 
 ```sql
 SELECT DAY(LAST_DAY('2023-07-08')) AS days_in_month;
 -- 输出：31
 
 SELECT DAY(LAST_DAY('2023-02-01')) AS days_in_month;
--- 输出：28 (闰年中的二月份)
+-- 输出：28，2023 年不是闰年
 
 SELECT DAY(LAST_DAY(NOW())) AS days_in_current_month;
--- 输出：31 （当前月份的天数）
+-- 输出取决于当前月份
 ```
-
-使用 `LAST_DAY()` 函数获取给定日期的当月最后一天，然后使用 `DAY()` 函数提取该日期的天数。这样就能获得指定月份的天数。
-
-需要注意的是，`LAST_DAY()` 函数返回的是日期值，而 `DAY()` 函数用于提取日期值中的天数部分。
 
 **答案**：
 
@@ -487,7 +351,7 @@ WHERE DATE_FORMAT(submit_time, '%Y') = '2021'
 ORDER BY submit_month
 ```
 
-在实例数据输出中因为最后一行需要得出汇总数据，所以这里要 `UNION ALL`加到结果集中；别忘了最后要排序！
+使用 `UNION ALL` 添加年度汇总行，并对整个结果排序。年度汇总行以 31 为分母是示例口径，不应套用为年日均值的通用计算方式。
 
 ### 未完成试卷数大于 1 的有效用户（较难）
 
@@ -527,9 +391,7 @@ ORDER BY submit_month
 
 **思路：**
 
-仔细读题后，分析出：首先要联表，因为后面要输出`tag`；
-
-筛选出 2021 年的数据
+关联试卷信息取得 `tag`，筛选 2021 年的作答记录：
 
 ```sql
 SELECT *
@@ -538,11 +400,7 @@ LEFT JOIN examination_info ei ON er.exam_id = ei.exam_id
 WHERE YEAR (er.start_time)= 2021
 ```
 
-根据 uid 进行分组，然后对每个用户进行条件进行判断，题目中要求`完成试卷数至少为1,未完成试卷数要大于1，小于5`
-
-那么等会儿写 sql 的时候条件应该是：`未完成 > 1 and 已完成 >=1 and 未完成 < 5`
-
-因为最后要用到字符串的拼接，而且还要组合拼接，这个可以用`GROUP_CONCAT`函数，下面简单介绍一下该函数的用法：
+按用户分组，筛选 `未完成 > 1`、`已完成 >= 1` 和 `未完成 < 5`。用 `GROUP_CONCAT` 汇总日期和类别：
 
 基本格式：
 
@@ -554,8 +412,6 @@ GROUP_CONCAT([DISTINCT] expr [ORDER BY {unsigned_integer | col_name | expr} [ASC
 - `DISTINCT`：可选参数，用于去重。当指定了 `DISTINCT`，相同的值只会出现一次。
 - `ORDER BY`：可选参数，用于排序连接后的值。可以选择升序 (`ASC`) 或降序 (`DESC`) 排序。
 - `SEPARATOR sep`：可选参数，用于设置连接后的值的分隔符。（本题要用这个参数设置 ; 号 ）
-
-`GROUP_CONCAT()` 函数常用于 `GROUP BY` 子句中，将一组行的值连接为一个字符串，并在结果集中以聚合的形式返回。
 
 **答案**：
 
@@ -581,7 +437,7 @@ ORDER BY incomplete_cnt DESC
 
 - `SUM(CASE WHEN a.submit_time IS NULL THEN 1 END)` 统计了每个用户未完成的记录数量。
 - `SUM(CASE WHEN a.submit_time IS NOT NULL THEN 1 END)` 统计了每个用户已完成的记录数量。
-- `GROUP_CONCAT(DISTINCT CONCAT(DATE_FORMAT(a.start_time, '%Y-%m-%d'), ':', b.tag) ORDER BY a.start_time SEPARATOR ';')` 将每个用户的考试日期和标签以逗号分隔的形式连接成一个字符串，并按考试开始时间进行排序。
+- `GROUP_CONCAT(... SEPARATOR ';')` 将每个用户的考试日期和类别按考试开始时间排序，以分号连接。
 
 ## 嵌套子查询
 
@@ -635,7 +491,9 @@ GROUP BY UID,
 HAVING count(submit_time) >= 3
 ```
 
-有了这一步之后再进行深入，只要能理解上一步(我的意思是不被题目中的月均所困扰)，然后再套一个子查询，查哪些用户包含其中，然后查出题目中所需的列即可。记得排序！！
+原解法以下面的子查询筛选用户，再统计类别并排序。
+
+**待核验**：题目要求“月均完成”，但该子查询按用户和月份分组后筛选单月完成数不少于 3，且只用 `MONTH(start_time)`，可能把不同年份的同月合并。它不能直接证明月均完成数满足题意；应结合原题对统计月份和分母的定义重新验证。
 
 ```sql
 SELECT tag,
@@ -718,7 +576,7 @@ WHERE e_info.exam_id = record.exam_id
   AND u_info.LEVEL > 5
 ```
 
-接着注意题目中要求：`每张sql类别试卷发布后，当天作答用户`，注意其中的==当天==，那我们马上就要想到要用到时间的比较。
+关联试卷和作答记录，并比较发布时间与作答时间的日期部分。
 
 对试卷发布日期和开始考试日期进行比较：`DATE(e_info.release_time) = DATE(record.start_time)`；不用担心`submit_time` 为 null 的问题，后续在 where 中会给过滤掉。
 
@@ -742,7 +600,7 @@ ORDER BY uv DESC,
          avg_score ASC
 ```
 
-注意最后的分组排序！先按人数排，若一致，按平均分排。
+按人数排序，人数相同时按平均分排序。
 
 ### 作答试卷得分大于过 80 的人的用户等级分布
 
@@ -943,63 +801,28 @@ FROM
 
 **解释**：用户 1001 最小分数 81 不满足活动 1，但 29 分 59 秒完成了 60 分钟长的试卷得分 81，满足活动 2；1003 最小分数 86 满足活动 1，完成时长都大于试卷时长的一半，不满足活动 2；用户 1004 刚好用了一半时间（30 分钟整）完成了试卷得分 85，满足活动 1 和活动 2。
 
-**思路**： 使用 `TIMESTAMPDIFF()` 计算两个时间戳之间的分钟差值。
+**思路**：活动 1 先按用户统计 2021 年已完成记录的最低分，最低分不低于 85 才满足“每次都达到 85”；活动 2 用秒计算作答时长，包含恰好用一半时长的记录，并筛选分数大于 80 的高难度试卷。分别求出两个活动的用户后合并、排序。
 
-基本用法：
-
-示例：
+**参考解答**：
 
 ```sql
-TIMESTAMPDIFF(MINUTE, start_time, end_time)
-```
-
-`TIMESTAMPDIFF()` 函数的第一个参数是时间单位，这里我们选择 `MINUTE` 表示返回分钟差值。第二个参数是较早的时间戳，第三个参数是较晚的时间戳。函数会返回它们之间的分钟差值
-
-了解了这个函数的用法之后，我们再回过头来看`activity1`的要求，求分数大于 85 即可，那我们还是先把这个写出来，后续思路就会清晰很多
-
-```sql
-SELECT DISTINCT UID
+SELECT uid, 'activity1' AS activity
 FROM exam_record
-WHERE score >= 85
-  AND YEAR (start_time) = '2021'
+WHERE submit_time >= '2021-01-01' AND submit_time < '2022-01-01'
+  AND score IS NOT NULL
+GROUP BY uid
+HAVING MIN(score) >= 85
+UNION ALL
+SELECT DISTINCT record.uid, 'activity2' AS activity
+FROM exam_record AS record
+JOIN examination_info AS info ON record.exam_id = info.exam_id
+WHERE record.submit_time >= '2021-01-01' AND record.submit_time < '2022-01-01'
+  AND info.difficulty = 'hard' AND record.score > 80
+  AND TIMESTAMPDIFF(SECOND, record.start_time, record.submit_time) <= info.duration * 30
+ORDER BY uid, activity;
 ```
 
-根据条件 2，接着写出`在一半时间内完成高难度试卷且分数大于80的人`
-
-```sql
-SELECT UID
-FROM examination_info info
-INNER JOIN exam_record record
-WHERE info.exam_id = record.exam_id
-  AND (TIMESTAMPDIFF(MINUTE, start_time, submit_time)) < (info.duration / 2)
-  AND difficulty = 'hard'
-  AND score >= 80
-```
-
-然后再把两者`UNION` 起来即可。（这里特别要注意括号问题和`order by`位置，具体用法在上一篇中已提及）
-
-**答案**：
-
-```sql
-SELECT DISTINCT UID UID,
-                    'activity1' activity
-FROM exam_record
-WHERE UID not in
-    (SELECT UID
-     FROM exam_record
-     WHERE score<85
-       AND YEAR(submit_time) = 2021 )
-UNION
-SELECT DISTINCT UID UID,
-                    'activity2' activity
-FROM exam_record e_r
-LEFT JOIN examination_info e_i ON e_r.exam_id = e_i.exam_id
-WHERE YEAR(submit_time) = 2021
-  AND difficulty = 'hard'
-  AND TIMESTAMPDIFF(SECOND, start_time, submit_time) <= duration *30
-  AND score>80
-ORDER BY UID
-```
+**易错点**：仅筛选 `score >= 85` 会误选有其他低分记录的用户；只排除低分用户但不要求 2021 年存在有效成绩，也可能误选未在该年完成试卷的用户。用分钟差计算一半时长会截断秒数，应直接比较秒数。
 
 ## 连接查询
 
@@ -1067,56 +890,37 @@ ORDER BY UID
 
 解释：用户 1001、1003、1004、1006 满足高难度 SQL 试卷得分平均值大于 80，但只有 1001、1003 是 7 级红名大佬；1001 完成了 1 次试卷 1001，练习了 2 次题目；1003 完成了 2 次试卷 9001、9002，未练习题目（因此计数为 0）
 
-**思路：**
+**思路**：先按高难度 SQL 试卷的平均分筛选 7 级用户，再分别统计每人在 2021 年的试卷完成次数和练习次数。两个来源先各自聚合，可以避免多表连接使次数相乘；用左连接保留没有练习记录的用户。
 
-先将条件进行初步筛选，比如先查出做过高难度 sql 试卷的用户
-
-```sql
-SELECT
-	record.uid
-FROM
-	exam_record record
-	INNER JOIN examination_info e_info ON record.exam_id = e_info.exam_id
-	JOIN user_info u_info ON record.uid = u_info.uid
-WHERE
-	e_info.tag = 'SQL'
-	AND e_info.difficulty = 'hard'
-```
-
-然后根据题目要求，接着再往里叠条件即可；
-
-但是这里又要注意：
-
-第一：不能`YEAR(submit_time)= 2021`这个条件放到最后，要在`ON`条件里，因为左连接存在返回左表全部行，右表为 null 的情形，放在 `JOIN`条件的 `ON` 子句中的目的是为了确保在连接两个表时，只有满足年份条件的记录会进行连接。这样可以避免其他年份的记录被包含在结果中。即 1001 做过 2021 年的试卷，但没有练习过，如果把条件放到最后，就会排除掉这种情况。
-
-第二，必须是`COUNT(distinct er.exam_id) exam_cnt, COUNT(distinct pr.id) question_cnt，`要加 distinct，因为有左连接产生很多重复值。
-
-**答案**：
+**参考解答**：
 
 ```sql
-SELECT er.uid AS UID,
-       count(DISTINCT er.exam_id) AS exam_cnt,
-       count(DISTINCT pr.id) AS question_cnt
-FROM exam_record er
-LEFT JOIN practice_record pr ON er.uid = pr.uid
-AND YEAR (er.submit_time)= 2021
-AND YEAR (pr.submit_time)= 2021
-WHERE er.uid IN
-    (SELECT er.uid
-     FROM exam_record er
-     LEFT JOIN examination_info ei ON er.exam_id = ei.exam_id
-     LEFT JOIN user_info ui ON er.uid = ui.uid
-     WHERE tag = 'SQL'
-       AND difficulty = 'hard'
-       AND LEVEL = 7
-     GROUP BY er.uid
-     HAVING avg(score) > 80)
-GROUP BY er.uid
-ORDER BY exam_cnt,
-         question_cnt DESC
+SELECT qualified.uid, exams.exam_cnt, COALESCE(practice.question_cnt, 0) AS question_cnt
+FROM (
+    SELECT record.uid
+    FROM exam_record AS record
+    JOIN examination_info AS info ON info.exam_id = record.exam_id
+    JOIN user_info AS users ON users.uid = record.uid
+    WHERE info.tag = 'SQL' AND info.difficulty = 'hard' AND users.level = 7
+    GROUP BY record.uid
+    HAVING AVG(record.score) > 80
+) AS qualified
+JOIN (
+    SELECT uid, COUNT(*) AS exam_cnt
+    FROM exam_record
+    WHERE submit_time >= '2021-01-01' AND submit_time < '2022-01-01'
+    GROUP BY uid
+) AS exams ON exams.uid = qualified.uid
+LEFT JOIN (
+    SELECT uid, COUNT(*) AS question_cnt
+    FROM practice_record
+    WHERE submit_time >= '2021-01-01' AND submit_time < '2022-01-01'
+    GROUP BY uid
+) AS practice ON practice.uid = qualified.uid
+ORDER BY exams.exam_cnt, question_cnt DESC;
 ```
 
-可能细心的小伙伴会发现，为什么明明将条件限制了`tag = 'SQL' AND difficulty = 'hard'`，但是用户 1003 仍然能查出两条考试记录，其中一条的考试`tag`为 `C++`; 这是由于`LEFT JOIN`的特性，即使没有与右表匹配的行，左表的所有记录仍然会被保留。
+**易错点**：上游写法把试卷的 2021 年条件放在 `LEFT JOIN ... ON` 中，不会过滤左表的其他年份记录；用 `COUNT(DISTINCT exam_id)` 还会把同一试卷的多次完成合并。上述写法分别按作答记录和练习记录计数。
 
 ### 每个 6/7 级用户活跃情况（困难）
 
@@ -1182,7 +986,7 @@ ORDER BY exam_cnt,
 
 **思路：**
 
-这题的关键在于`CASE WHEN THEN`的使用，不然要写很多的`left join` 因为会产生很多的结果集。
+使用 `CASE WHEN` 按条件统计，注意连接可能产生重复行。
 
 `CASE WHEN THEN`语句是一种条件表达式，用于在 SQL 中根据条件执行不同的操作或返回不同的结果。
 
@@ -1255,7 +1059,7 @@ SELECT
 		practice_record
 ```
 
-最后将两个结果进行`UNION` 最后别忘了将结果进行排序 （这题有点类似于分治法的思想）
+用 `UNION` 合并两个结果，再按题目要求排序。
 
 **答案**：
 
