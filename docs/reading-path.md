@@ -83,11 +83,14 @@
 
 ### 4. 后端与数据平台
 
-1. [网络](materials/javaguide/docs/cs-basics/network/README.md)与[操作系统](materials/javaguide/docs/cs-basics/operating-system/README.md)
-2. [MySQL](materials/javaguide/docs/database/mysql/README.md)、[Redis](materials/javaguide/docs/database/redis/README.md)、[消息队列](materials/javaguide/docs/high-performance/message-queue/README.md)
-3. [分布式系统](materials/javaguide/docs/distributed-system/README.md)与[高可用](materials/javaguide/docs/high-availability/README.md)
-4. [System Design Primer 中文版](materials/system-design-primer/README-zh-Hans.md)：先读方法，再读站内收录的案例。
-5. [后端与数据平台检查表](notes/backend-checklist.md)：逐项对照已经读过的资料。
+需要系统补基础时，先按 [Aye10032 四科笔记](materials/aye10032/index.md)的原有目录阅读：[计算机网络](materials/aye10032/network/README.md)、[操作系统](materials/aye10032/os/README.md)、[计算机组成原理](materials/aye10032/organization/README.md)、[数据结构](materials/aye10032/data-structure/README.md)。下面的 JavaGuide 用于对照面试问题与工程应用。
+
+1. [Java 笔试与面试精选](materials/javaguide/docs/java/README.md)：按基础、集合、并发、JVM、IO 与 Java 8 新特性复习。
+2. [网络](materials/javaguide/docs/cs-basics/network/README.md)与[操作系统重点笔记](materials/javaguide/docs/cs-basics/operating-system/essentials/README.md)，按需查阅[操作系统原文章节](materials/javaguide/docs/cs-basics/operating-system/README.md)
+3. [SQL、MySQL 与 Redis 重点笔记](materials/javaguide/docs/database/essentials/README.md)，按需查阅 [MySQL 原文](materials/javaguide/docs/database/mysql/README.md)、[Redis 原文](materials/javaguide/docs/database/redis/README.md)及[消息队列](materials/javaguide/docs/high-performance/message-queue/README.md)
+4. [分布式系统](materials/javaguide/docs/distributed-system/README.md)与[高可用](materials/javaguide/docs/high-availability/README.md)
+5. [System Design Primer 中文版](materials/system-design-primer/README-zh-Hans.md)：先读方法，再读站内收录的案例。
+6. [后端与数据平台检查表](notes/backend-checklist.md)：逐项对照已经读过的资料。
 
 ### 5. 个人补充与项目证据
 

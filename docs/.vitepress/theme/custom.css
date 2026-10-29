@@ -1155,6 +1155,45 @@ textarea::placeholder {
 .outline-rail nav a:hover {
   background: var(--vp-c-bg-soft);
 }
+.chapter-group > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 10px;
+  color: var(--study-ink);
+  font-weight: 600;
+  line-height: 1.8;
+  list-style: none;
+  cursor: pointer;
+}
+.chapter-group > summary::-webkit-details-marker {
+  display: none;
+}
+.chapter-group > summary::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  transform: rotate(-45deg);
+}
+.chapter-group[open] > summary::after {
+  transform: rotate(45deg);
+}
+.chapter-group > summary:hover {
+  background: var(--vp-c-bg-soft);
+}
+.chapter-group > summary:focus-visible {
+  outline: 2px solid var(--vp-c-brand-1);
+  outline-offset: -2px;
+}
+.chapter-children {
+  display: flex;
+  flex-direction: column;
+  padding-left: 12px;
+}
 @media (min-width: 1200px) {
   .reader-frame {
     grid-template-columns: 180px minmax(0, var(--reader-measure));

@@ -17,7 +17,8 @@ import {
 } from "vitepress";
 import { VPNavBarSearch } from "vitepress/theme-without-fonts";
 import { data as catalog } from "./data/catalog.data.js";
-import { chapterList, pagePath, sourceFor } from "./data/navigation.js";
+import { chapterList, chapterTree, collectionFor, pagePath, sourceFor } from "./data/navigation.js";
+import ChapterNavigation from "./components/ChapterNavigation.vue";
 import { initStudy, study, saveStudy } from "./study-state.js";
 
 const HomePage = defineAsyncComponent(
@@ -79,6 +80,9 @@ const chapters = computed(() => {
   if (documentUrl.value.startsWith("/byte-agent/")) return questionPages;
   return chapterList(documentUrl.value, catalog);
 });
+const chapterNodes = computed(() => chapterTree(
+  chapters.value, collectionFor(documentUrl.value, catalog)?.groups || [],
+));
 const adjacent = computed(() => {
   const index = chapters.value.findIndex(
     (c) => href(c.url) === cleanPath.value,
@@ -353,12 +357,8 @@ onUnmounted(() => {
         <aside class="chapter-rail" aria-label="章节导航">
           <a class="rail-back" :href="href(libraryUrl)">← {{ source?.title || "资料库" }}</a>
           <nav>
-            <a
-              v-for="(chapter, index) in chapters"
-              :key="chapter.url"
-              :href="href(chapter.url)"
-              :aria-current="href(chapter.url) === cleanPath ? 'page' : undefined"
-            ><span class="rail-number">{{ String(index + 1).padStart(2, "0") }}</span>{{ chapter.title }}</a>
+            <ChapterNavigation :key="cleanPath" :items="chapterNodes" :current="cleanPath"
+              :numbered="!chapterNodes.some((item) => item.children)" />
           </nav>
           <a class="rail-source" :href="href('/sources')">资料出处与快照范围 ↗</a>
         </aside>
@@ -480,14 +480,7 @@ onUnmounted(() => {
         </button>
       </div>
       <nav>
-        <a
-          v-for="chapter in chapters"
-          :key="chapter.url"
-          :href="href(chapter.url)"
-          :aria-current="href(chapter.url) === cleanPath ? 'page' : undefined"
-          @click="chapterSheet.close()"
-          >{{ chapter.title }}</a
-        >
+        <ChapterNavigation :key="cleanPath" :items="chapterNodes" :current="cleanPath" @navigate="chapterSheet.close()" />
       </nav>
     </dialog>
     <dialog id="page-outline" ref="outlineSheet" class="navigation-sheet reader-sheet outline-sheet" aria-labelledby="outline-sheet-title">

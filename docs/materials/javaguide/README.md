@@ -43,6 +43,8 @@
 
 ## Java
 
+- [Java 笔试与面试精选目录](./docs/java/README.md)
+
 ### 基础
 
 **知识点/面试题总结**（必看:+1:）：
@@ -216,6 +218,8 @@ JVM 这部分内容主要参考 [JVM 虚拟机规范-Java8](https://docs.oracle.
 另外，[GeeksforGeeks](https://www.geeksforgeeks.org/fundamentals-of-algorithms/) 这个网站总结了常见的算法，比较全面系统。
 
 ## 数据库
+
+- [数据库笔试与面试重点笔记（SQL、MySQL、Redis）](./docs/database/essentials/README.md)
 
 ### 基础
 

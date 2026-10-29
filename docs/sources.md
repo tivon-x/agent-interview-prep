@@ -25,7 +25,8 @@
 
 ## 后端与数据系统
 
-- [JavaGuide 精选快照](materials/javaguide/docs/ai/README.md)：网络、操作系统、数据库、Redis、消息队列与分布式基础。[上游仓库](https://github.com/Snailclimb/JavaGuide)，Apache-2.0。
+- [Aye10032 计算机基础笔记](materials/aye10032/index.md)：[计算机网络](materials/aye10032/network/README.md)、[操作系统](materials/aye10032/os/README.md)、[计算机组成原理](materials/aye10032/organization/README.md)与[数据结构](materials/aye10032/data-structure/README.md)。收录四套笔记的原有章节和配图，保留作者署名；原始仓库、快照提交与范围见入口页。上游未标明许可证，本项目用于个人学习。
+- [JavaGuide 精选快照](materials/javaguide/docs/ai/README.md)：[Java 笔试与面试精选](materials/javaguide/docs/java/README.md)、[操作系统重点笔记](materials/javaguide/docs/cs-basics/operating-system/essentials/README.md)、[数据库重点笔记](materials/javaguide/docs/database/essentials/README.md)、网络、消息队列与分布式基础。操作系统和数据库重点笔记是基于原文的精简整理。[上游仓库](https://github.com/Snailclimb/JavaGuide)，Apache-2.0。
 - [DDIA-Reading-Notes](https://github.com/fuxuemingzhu/DDIA-Reading-Notes)：DDIA 精简笔记。仓库未声明许可证，因此不在公开站点复制正文。
 - [DDIA 中文翻译](https://github.com/Vonng/ddia)：需要深入概念时查阅。CC BY 4.0。
 - [System Design Primer 中文快照](materials/system-design-primer/README-zh-Hans.md)：系统设计方法与案例。[上游仓库](https://github.com/donnemartin/system-design-primer)，CC BY 4.0。

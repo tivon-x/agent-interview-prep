@@ -7,6 +7,7 @@ export function topic(url) {
   if (/\/notes\/china-mobile\//.test(url)) return "笔试与企业认知";
   if (/\/notes\/(ml-basics|ml-dl-practice)\//.test(url)) return "机器学习基础";
   if (/\/notes\/dl-basics\//.test(url)) return "深度学习基础";
+  if (/\/materials\/aye10032\//.test(url)) return categories[4];
   if (/javaguide\/docs\/(?!ai(?:\/|$))/.test(url)) return categories[4];
   if (/\b(rag|retrieval)\b/i.test(url)) return categories[2];
   if (/\b(safety|evaluation|eval|security)\b/i.test(url)) return categories[3];
@@ -31,7 +32,9 @@ export default createContentLoader(["materials/**/*.md", "notes/**/*.md"], {
   includeSrc: true,
   async transform(raw) {
     const markdown = await createMarkdownRenderer(path.resolve("docs"));
-    const tokens = raw.map((p) => markdown.parse(p.src, {}));
+    const tokens = raw.map((p) => markdown.parse(
+      p.src.replace(/^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/, ""), {},
+    ));
     const pages = raw.map((p, i) => ({
       url: p.url.replace(/\.html$/, ""),
       title:
@@ -65,13 +68,26 @@ export default createContentLoader(["materials/**/*.md", "notes/**/*.md"], {
         p.url,
       ),
       links: [],
+      groups: [],
     }));
     const known = new Set(pages.map((p) => p.url));
     raw.forEach((p, i) => {
+      let group;
       pages[i].links = tokens[i]
-        .flatMap((t) => t.children || [])
-        .filter((t) => t.type === "link_open")
-        .flatMap((token) => {
+        .flatMap((t, n) => {
+          if (p.frontmatter.chapterGroups && t.type === "inline" &&
+              tokens[i][n - 1]?.type === "heading_open" && tokens[i][n - 1].tag === "h2") {
+            group = {
+              title: (t.children || []).filter((c) => ["text", "code_inline"].includes(c.type))
+                .map((c) => c.content).join("").trim(),
+              links: [],
+            };
+            pages[i].groups.push(group);
+          }
+          return (t.children || []).map((token) => ({ token, group }));
+        })
+        .filter(({ token }) => token.type === "link_open")
+        .flatMap(({ token, group }) => {
           const link = token.attrGet("href");
           if (!link || /^(https?:|#|mailto:)/.test(link)) return [];
           let url = path.posix
@@ -81,7 +97,9 @@ export default createContentLoader(["materials/**/*.md", "notes/**/*.md"], {
             )
             .replace(/\.(md|html)$/, "")
             .replace(/\/index$/, "/");
-          return known.has(url) && url !== pages[i].url ? [url] : [];
+          if (!known.has(url) || url === pages[i].url) return [];
+          group?.links.push(url);
+          return [url];
         })
         .filter((url, n, all) => all.indexOf(url) === n);
     });
