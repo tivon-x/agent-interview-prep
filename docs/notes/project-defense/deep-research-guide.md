@@ -4,585 +4,332 @@ title: Deep Research 项目指南
 
 [← 返回 Deep Research 项目速览](/notes/project-defense#deep-research)
 
-> 本页为项目仓库指南的完整收录，收录日期：2026-10-26。保留原文的版本、指标与实现边界；原文中的“当前”指指南编写时的状态。先读[项目深挖速览](/notes/project-defense#deep-research)，再在本页深入理解设计与源码。
+> 同步日期：2026-11-02。正文以项目工作区当前的 `PROJECT_GUIDE.md` 为底稿，并对照相关代码与评测文档核验，包含尚未提交的修补。源码链接指向仓库 `master` 分支，远端内容可能尚未包含这些修补；本页不代表真实模型端到端验收通过。先读[项目深挖速览](/notes/project-defense#deep-research)，再在本页深入理解设计与源码。
 
 # Deep Research 项目指南
 
-这份指南的目标很明确：面试 AI 应用开发岗位时，把这个项目讲成一个“能上线、能审计、能迭代”的 Agent 工程项目，而不是一个“调了 LangChain API 的 Demo”。
+这份指南用来理解项目，也用来准备面试。阅读时先看系统怎样完成一次研究，再看每道检查解决什么问题。面试时讲清“为什么这样做、代码怎样保证、还有什么没验证”，不用背类名。
 
-## 先把项目讲成一条业务链路
+## 项目现在处于什么状态
 
-### 30 秒版本
+Deep Research 目前只有一套运行流程：一个统筹智能体管理任务看板，四个专门的智能体负责确定范围、查资料、核验结果和写报告。旧流程的执行代码已删除，但仍能读取部分历史评测数据；旧的运行记录不能接着跑。
 
-Deep Research 是一个多智能体研究系统，目标是把用户一个模糊研究问题，变成一份有来源、有验证、有结构化状态的最终报告。
+项目已补齐单套流程的评测记录方式。最近一次调用真实模型和搜索服务的试跑基于 `8bc6dbe`，但搜索服务额度不足，没能生成报告，也没有自动评分或 GAIA 结果。它只说明外部额度阻断了这次试跑，不能证明当前版本的质量、准确率、成本或失败率。具体记录见[第 19 阶段评测计划](https://github.com/tivon-x/deep-research/blob/master/DEEP_RESEARCH_AGENT_TEAM_PHASE_19_EVIDENCE_PLAN.md)。
 
-我没有把它做成简单的搜索总结循环，而是拆成了一个受控流水线：编排器先做计划，范围界定智能体把问题拆成包含各种子问题的研究简报并请求人工审批，研究智能体按子问题查资料并写结构化 finding，验证智能体检查覆盖和证据质量，readiness evaluator 再做机器可读的报告门禁，只有通过后才让报告智能体生成最终报告和结构化导出。整个过程中，Markdown 给人看，JSON/JSONL 给程序做状态判断。
+目前能确认的是源码、无需外部服务的检查和已建好的评测流程。真实运行效果还要等模型与搜索额度恢复后测量。
 
-### 2 分钟版本
+## 系统解决的问题
 
-这个项目解决的是 AI research agent 的可靠性问题。一个常见做法是让模型自己搜索、总结、写报告，但问题是中间状态不可控：它到底有没有覆盖所有子问题，引用的来源是否有效，什么时候该停止研究，失败后从哪里恢复，这些都很难判断。
+复杂研究不只是“搜索，再让模型总结”。开始前要确认研究范围；多人同时查资料时，不能互相覆盖结果；写报告前，还要检查每条结论有没有可靠来源。系统把这些步骤串成一条可以中断、恢复和检查的流程：
 
-我的设计是把研究过程拆成五类角色：Orchestrator、Scoping、Researcher、Verification、Report Writer，再加一个 readiness evaluator。Orchestrator 不直接搜索，它只负责推进流程、委派任务和维护状态。Scoping 负责把用户意图变成 2 到 5 个子问题，并通过 LangGraph interrupt 做一次人工审批，避免一开始方向错了还继续烧搜索预算。Researcher 每次只处理一个子问题，写 Markdown findings，也写 `/research_findings/*.findings.json` 和 `/research_sources/*.sources.json`。Verification 检查覆盖、证据和 gap。Readiness evaluator 再从结构化文件里计算是否能进入报告阶段。
-
-技术上，这个项目用 Deep Agents 做 agent harness，用 LangChain 提供模型、工具和 middleware 抽象，用 LangGraph 提供 checkpoint、interrupt、thread_id 续跑和状态持久化。Deep Agents 的虚拟文件系统很适合这个场景：中间产物先存在 `StateBackend`，只有 `/memory/` 路由到 `StoreBackend` 做跨会话持久化，CLI 最后再把报告和结构化状态落盘。这样可以避免多个研究任务直接写本地磁盘互相覆盖。
-
-最核心的工程点是，我没有只靠 prompt 约束流程，而是把关键规则写进代码：`WorkflowGuardMiddleware` 限制阶段流转，`FileWriteScopeMiddleware` 限制角色写入路径，`SearchUsageLimitMiddleware` 限制搜索预算，`evaluator.py` 用确定性规则检查覆盖率、来源质量和 readiness 新鲜度。模型负责判断和写作，代码负责边界和门禁。
-
-### 一句话定位
-
-这是一个面向复杂研究任务的多 Agent 工作流系统，重点不是“能不能搜到信息”，而是“能不能证明它搜得够、引用得对、状态可恢复、失败可定位”。
-
-## 面试官最想听的主线
-
-### 用户一句话进来后发生了什么
-
-1. CLI 接收用户 query，生成或复用 `thread_id`，初始化 MCP，然后构建 agent。
-2. Orchestrator 创建 todo，把原始问题写入 `/research_request.md`，初始化 `/research_run.json` 和 `/research_events.jsonl`。
-3. Scoping agent 读取请求，生成 `/research_brief.md`，调用 `request_approval` 触发 LangGraph interrupt。
-4. 用户审批通过后，Scoping agent 写 `/research_brief.json`，里面包含用户意图、核心问题、子问题、成功标准和 approved 状态。
-5. Orchestrator 按 brief 拆任务，每个 Researcher 只研究一个子问题。
-6. Researcher 先做 source routing，再用 Tavily 或 MCP 获取证据，写 findings、source metadata、task-scoped source index 和 finding contract。
-7. Orchestrator 合并 task-scoped source indexes，生成全局 `/sources.json`。
-8. Verification agent 审计 findings 是否覆盖 brief，写 `/verification.json`。
-9. Orchestrator 调 `evaluate_readiness_state`，生成 `/readiness.json`。
-10. 只有 verification 和 readiness 都允许，report-agent 才能写 `/final_report.md` 和 `/report_exports/`。
-11. 最后 Orchestrator 调 `build_memory_assets`，把可复用研究资产写入 `/memory/`，CLI 把最终文件持久化到本地 `research/` 目录。
-
-面试里可以强调：这条链路里，模型负责“理解和生成”，代码负责“状态、权限、门禁和可恢复性”。
-
-## 架构怎么画
-
-```mermaid
-flowchart TD
-    U["用户研究问题"] --> C["CLI: thread_id / MCP 初始化 / 技能注入"]
-    C --> O["Orchestrator"]
-    O --> RQ["/research_request.md<br/>/research_run.json<br/>/research_events.jsonl"]
-    O --> S["Scoping Agent"]
-    S --> HITL["LangGraph interrupt<br/>人工审批 research brief"]
-    HITL --> B["/research_brief.md<br/>/research_brief.json"]
-    O --> RA1["Research Agent<br/>子问题 A"]
-    O --> RA2["Research Agent<br/>子问题 B"]
-    O --> RA3["Research Agent<br/>子问题 C"]
-    RA1 --> F["/research_findings/*.md<br/>*.findings.json"]
-    RA2 --> F
-    RA3 --> F
-    RA1 --> RS["/research_sources/*.sources.json<br/>*.sources.md"]
-    RA2 --> RS
-    RA3 --> RS
-    O --> GS["/sources.json<br/>全局来源汇总"]
-    O --> V["Verification Agent"]
-    V --> VF["/research_verification.md<br/>/verification.json"]
-    O --> E["Readiness Evaluator<br/>确定性规则 + FLASH 语义评估"]
-    E --> RD["/readiness.json"]
-    RD --> RP["Report Agent"]
-    RP --> FR["/final_report.md"]
-    RP --> EX["/report_exports/*.json"]
-    O --> M["/memory/<br/>StoreBackend + JSONL"]
+```text
+用户提出问题
+  ↓
+确定研究范围，交给用户确认
+  ↓
+统筹智能体拆分任务
+  ↓
+系统为每项任务确定目标和可用资料
+  ↓
+多名研究员并行查找、记录证据
+  ↓
+检查研究产物，复核同一任务的结果
+  ↓
+核验整体覆盖情况，判断能否结束研究
+  ↓
+逐条核对准备写进报告的陈述
+  ↓
+生成报告、网页、PDF 和来源附录
+  ↓
+研究完成后保存可复用的背景资料
 ```
 
-讲图时不要从框架名开始。先说用户问题如何被拆解、审批、研究、验证、报告，再说这些能力分别借了 LangGraph、Deep Agents、LangChain 哪一层。
+这里的分工是：模型负责提出研究内容、调用工具；代码负责核对身份、限制权限、管理状态和决定能否完成。涉及权限与结果放行的要求不能只写在提示词里。
 
-## 技术栈怎么讲
+## 从入口看整体架构
 
-### LangChain、LangGraph、Deep Agents 的分工
+### 命令行与运行入口
 
-项目里的分工可以这样讲：
+[`main.py`](https://github.com/tivon-x/deep-research/blob/master/main.py) 负责加载环境变量并启动命令行。[`src/cli.py`](https://github.com/tivon-x/deep-research/blob/master/src/cli.py) 负责保存和恢复运行状态、处理审批与取消、限制总用时，并保存运行记录。服务部署入口由 [`langgraph.json`](https://github.com/tivon-x/deep-research/blob/master/langgraph.json) 指向 [`src/agent.py`](https://github.com/tivon-x/deep-research/blob/master/src/agent.py)。
 
-LangChain 是底层组件层，提供 `ChatOpenAI`、tool、middleware 和 `create_agent` 这类抽象。项目里 `src/llm.py` 用 `langchain_openai.ChatOpenAI` 初始化不同角色模型，`src/tools.py` 里的工具都用 `@tool(parse_docstring=True)` 暴露给模型，middleware 也继承自 LangChain 的 `AgentMiddleware`。
+智能体在 `build_agent()` 中组装：普通工作文件放在本次运行的状态里，只有 `/memory/` 下的长期资料单独持久保存；统筹智能体拿到任务、进度、报告检查和记忆工具；四个专门角色及其权限检查也在这里接入。
 
-LangGraph 是运行时层，负责持久执行、checkpoint、interrupt、thread_id 和 resume。项目里 `request_approval` 直接调用 `langgraph.types.interrupt`，CLI 收到 `__interrupt__` 后用 `Command(resume=approval)` 继续执行。`MemorySaver` 是当前本地 checkpoint，面试时要主动说生产环境应该换成持久化 checkpointer。
+读源码时可从 [`src/agent.py`](https://github.com/tivon-x/deep-research/blob/master/src/agent.py) 开始，再看 [`src/subagents/`](https://github.com/tivon-x/deep-research/tree/master/src/subagents/) 中各角色拿到的模型、工具和文件权限，最后对照 [`src/prompts.py`](https://github.com/tivon-x/deep-research/blob/master/src/prompts.py) 中的提示词。重点是分清哪些只是给模型的要求，哪些由代码强制执行。
 
-Deep Agents 是 harness 层，提供 `create_deep_agent`、subagents、虚拟文件系统 backend、skills 和 memory 组合能力。项目里 `src/agent.py` 用 `create_deep_agent` 注册 Orchestrator、工具、四个 subagent、middleware、backend 和 store。
+### 五个角色怎么分工
 
-可以顺手补一句：官方文档里 Deep Agents 被描述为带任务规划、文件系统、subagent 和长期记忆的 agent harness，底层仍然建立在 LangChain 和 LangGraph 之上。本项目正好把这三层按职责拆开用。
+| 角色 | 负责什么 | 边界 |
+|---|---|---|
+| 统筹智能体 | 管理流程和任务看板，汇总来源，决定何时检查报告、保存长期资料 | 不代替研究员写任务产物 |
+| 范围界定员 | 把用户问题整理成研究计划，并请用户确认 | 确认前不搜索 |
+| 研究员 | 按一项任务的要求查资料，记录发现、来源和过程 | 不改任务看板和全局来源清单 |
+| 复核员 | 对比同一任务的研究结果，并检查整体缺口 | 不随意读取其他任务的文件 |
+| 报告员 | 整理待写入报告的陈述，生成报告和结构化结果 | 不能跳过证据检查 |
 
-### 为什么用 Deep Agents
+系统还有一项“能否写报告”的检查，它不是第五个子智能体。它主要按固定规则判断，也可以让轻量模型补充语义判断；模型调用失败只会留下提示，不能让原本不合格的结果通过。
 
-这个项目需要的不只是 tool calling，而是一个能长期推进复杂任务的工作台：要有文件系统存中间产物，要能把任务委派给不同角色，要支持人机审批，要能在同一个 thread 里恢复，还要能把长期记忆从当前任务状态里拆出去。Deep Agents 的 `StateBackend`、`StoreBackend`、subagents 和 skills 正好对应这些需求。
+## 状态设计：谁说了算
 
-过度设计的边界也要讲清楚。如果只是“用户问一句，模型调一个搜索工具，再总结一句”，Deep Agents 和 LangGraph 都偏重。这个项目用了它们，是因为流程里有真实的阶段、分支、审批、状态文件、跨角色写入权限和最终报告门禁。
+### 任务看板是运行依据
 
-### 为什么用 LangGraph interrupt
+[`src/schemas.py`](https://github.com/tivon-x/deep-research/blob/master/src/schemas.py) 定义任务看板的数据结构：任务和子任务的编号、目标、策略、状态、复核结果，以及已经处理过的更新记录。未知字段会被拒绝。所有更新统一交给 [`src/task_board.py`](https://github.com/tivon-x/deep-research/blob/master/src/task_board.py) 处理，避免不同代码各自修改看板，产生互相冲突的结果。
 
-Scoping 阶段是最值得中断的地方。研究任务一旦开始，会消耗搜索预算和模型 token，如果 scope 理解错了，后面所有动作都会错。项目用 `request_approval` 在 brief 生成后暂停，CLI 展示待审批内容，用户批准后才继续。
+`/research_tasks.json` 是给命令行、网页和审计看的副本，不能反过来指挥运行。真正的看板留在统筹智能体的私有状态里，子智能体拿不到整张看板。这部分由 [`src/middleware/task_board_shadow.py`](https://github.com/tivon-x/deep-research/blob/master/src/middleware/task_board_shadow.py) 实现。
 
-面试官追问 checkpoint 时可以这样答：
+### 为什么要集中处理更新
 
-interrupt 不是普通 input，它会让图暂停并保存状态。resume 时必须用同一个 `thread_id`，`Command(resume=...)` 会成为 `interrupt()` 在工具内部的返回值。需要注意的是，LangGraph resume 时会从触发 interrupt 的节点重新执行，所以 interrupt 前的副作用要么幂等，要么放到 interrupt 后。本项目把审批前后状态写入做得比较克制，主要副作用集中在批准之后写 `/research_brief.json`。
+研究员会同时完成任务。如果大家都读取同一份旧数据、各自改完再写回，最后写入的人可能覆盖其他人的结果。集中更新会检查：状态能否这样变化、结果属于哪次执行、同一更新是否已经处理，以及复核、取消和恢复是否符合规则。
 
-### 为什么用虚拟文件系统
+任务的总体状态也根据子任务和复核结果计算，而不是另存一份任意改动的值。这样减少“子任务已完成，任务却仍显示进行中”的矛盾。具体实现见 `reduce_research_task_board()` 和 `_derive_task_status()`。
 
-研究过程有很多中间产物，直接落本地磁盘会带来几个问题：多用户冲突、并行任务覆盖、权限边界不清、服务端部署不方便。Deep Agents 的 `StateBackend` 把这些文件存在 LangGraph state 里，同一个 thread 可以通过 checkpoint 恢复，subagent 写的文件也能被 Orchestrator 和其他 subagent 读取。
+### 为什么既有文章又有结构化文件
 
-项目没有把所有内容都放进一个巨大 state dict，而是用虚拟路径表达职责：
+研究计划、发现和报告用 Markdown，方便人阅读；同一份关键信息也保存为 JSON 或逐行记录，方便程序检查。例如研究计划对应 `/research_brief.md` 和 `/research_brief.json`，研究发现对应 `/research_findings/*.md` 和 `/research_findings/*.findings.json`，核验结果对应 `/research_verification.md` 和 `/verification.json`。
 
-- `/research_brief.json` 是已审批的研究范围
-- `/research_findings/*.findings.json` 是每个研究任务的机器契约
-- `/research_sources/*.sources.json` 是每个任务自己的来源索引
-- `/sources.json` 是 Orchestrator 合并后的全局来源索引
-- `/verification.json` 是验证结论
-- `/readiness.json` 是报告门禁
-- `/report_exports/*.json` 是报告的结构化导出
-- `/memory/` 是跨会话长期记忆
+是否放行只看结构化结果，不从文章里猜状态。运行指标、工具使用和错误记录也只是给人看的运行记录，不参与任务调度。
 
-这个设计的好处是：文件名就是边界，检查逻辑也能围绕这些边界写成确定性代码。
+## 系统怎样分派研究任务
 
-## 项目里最能打的工程亮点
+### 模型只指定任务编号
 
-### 亮点一：用代码门禁代替纯 prompt 约束
+模型发起分派时，只提交任务和子任务编号，例如：
 
-很多 Agent 项目失败在“希望模型按流程做”。本项目把关键流程写进 `WorkflowGuardMiddleware`：
+```text
+TASK_ID=rt-0001; ASSIGNMENT_ID=ra-0001
+```
 
-- Research 必须等 `/research_brief.json` 存在且 approved 为 true。
-- Research task 的描述必须包含 brief 里的已批准子问题。
-- Verification 必须等每个子问题都有完整 finding contract。
-- Finding 里引用的 `source_ids` 必须存在于对应 task-scoped source index。
-- Report 必须等 `/verification.json` 表示 ready，且没有 CRITICAL/HIGH gap。
-- Report 还必须等 `/readiness.json` 是 READY，并且 input snapshot 没过期。
+[`src/task_dispatch.py`](https://github.com/tivon-x/deep-research/blob/master/src/task_dispatch.py) 先检查编号是否存在、任务是否已取消、当前能否分派，再从任务看板补全目标、研究策略、允许读取的资料、必须写入的文件和完成条件。[`src/middleware/workflow_guard.py`](https://github.com/tivon-x/deep-research/blob/master/src/middleware/workflow_guard.py) 会用这份由代码生成的任务说明覆盖模型原来的描述。模型不能靠改写一句话扩大可读范围或改变目标。
 
-面试表达：
+### 先占住任务，再并行执行
 
-我把 workflow 从“提示词里的建议”提升成“代码里的硬约束”。模型可以决定怎么写、怎么查，但不能绕过审批、验证和 readiness。这样线上出问题时，也能知道是哪个 gate 拦住了，而不是只看到一段模型输出。
+模型一次可能分派多项任务。系统会在研究员并行启动前，一次性检查并占住这些任务，把状态从“待执行”改为“执行中”，记录执行次数，并将每项任务绑定到对应的工具调用。启动时再核对这次占用记录。
 
-### 亮点二：角色级文件写入权限
+因此，同一项任务不会被两个研究员同时领走；重复编号、过期结果、已取消任务和越权分派也会在启动前被拒绝。
 
-`FileWriteScopeMiddleware` 把每个角色能写的路径锁死：
+### 并行数量由运行代码控制
 
-- Orchestrator 写 `/research_run.json`、`/sources.json`、`/readiness.json` 和 `/memory/`
-- Scoping 写 brief
-- Research 写 `/research_findings/`、`/research_sources/`、`/research_events/`
-- Verification 写 verification
-- Report 写 final report 和 report exports
+[`src/run_controller.py`](https://github.com/tivon-x/deep-research/blob/master/src/run_controller.py) 保存本次运行的并行名额、搜索、模型和工具调用次数，以及已经成功提取的网页内容。名额满时，新任务等待；任务结束或出错时都会释放名额。
 
-它还会拦截 `..` 父路径引用，避免模型通过路径绕过权限。
+这些进程内对象不直接保存到运行记录里；与预算有关的部分只保存计数和已用时间。重启后，新进程先恢复这些数字，再继续执行，不会从零开始计算。
 
-面试表达：
+## 读写隔离如何工作
 
-这是把 Agent 的权限模型做小。Researcher 不应该能覆盖全局 `/sources.json`，Report Writer 不应该能改 `/research_run.json`。角色边界越清楚，出了问题越容易定位。
+### 先按角色限制写入
 
-### 亮点三：并行研究不共享写全局状态
+[`src/filesystem_policy.py`](https://github.com/tivon-x/deep-research/blob/master/src/filesystem_policy.py) 和 [`src/middleware/file_write_scope.py`](https://github.com/tivon-x/deep-research/blob/master/src/middleware/file_write_scope.py) 规定：统筹智能体写全局状态和长期资料；范围界定员写研究计划；研究员只写自己的发现、来源和过程；复核员写核验结果；报告员写最终报告及导出文件。
 
-多个 Researcher 研究不同子问题时，最容易出现最后写入者覆盖前面结果的问题。本项目让 Researcher 只写自己的 task-scoped 文件：
+角色都没有删除或执行文件的工具，试图用 `..` 跳出允许目录也会被拒绝。除统筹智能体外，其他角色不能读取或列出任务看板的公开文件。
 
-- `/research_findings/<topic>.md`
-- `/research_findings/<topic>.findings.json`
-- `/research_sources/<topic>.sources.md`
-- `/research_sources/<topic>.sources.json`
-- `/research_events/<topic>.jsonl`
+### 再限制每次任务能读什么
 
-全局 `/sources.json` 只由 Orchestrator 在所有研究任务结束后合并。
+同为研究员，也不能任意读取另一名研究员的资料。[`src/middleware/assignment_read_scope.py`](https://github.com/tivon-x/deep-research/blob/master/src/middleware/assignment_read_scope.py) 根据本次任务说明限定读取范围。没有有效任务说明时，受保护的文件默认不能读；列目录和搜索共享目录的操作会被拒绝；读取文件时必须精确命中本任务获准的路径。复核员也只能读取当前任务列出的待核验文件。
 
-面试表达：
+这里限制的是系统虚拟工作区里的文件访问，不能当作操作系统级的安全隔离。若让互不信任的客户共用服务，还需要进程、容器、凭据和网络层面的隔离。
 
-这里的重点不是“我开了几个线程”，而是并行安全。子任务只能写自己的局部产物，全局状态由一个角色统一合并，避免并发写共享文件。
+## 研究员说“完成”后，系统还要检查什么
 
-### 亮点四：readiness evaluator 是停止条件
+一句“做完了”不会让任务直接通过。[`src/task_board.py`](https://github.com/tivon-x/deep-research/blob/master/src/task_board.py) 会检查发现文件是否可读取、是否标记完成；发现、来源和过程记录是否属于当前任务；发现引用的来源编号是否在本任务的来源清单里；过程记录是否每行都符合约定格式。
 
-很多研究 Agent 不知道什么时候该停。本项目用 `src/evaluator.py` 把“能不能写报告”变成可计算状态。
+文件不合格，任务会记为 `TASK_OUTPUT_INVALID`；研究员连续重复同一批工具调用，触发停止规则时会记为 `REPEATED_TOOL_BATCH`。如果过期或乱序的结果被看板拒绝，系统也会丢弃它附带的文件和其他状态，避免旧结果继续混入当前研究。
 
-确定性规则会检查：
+这些检查保证的是文件结构、归属和引用关系。网页说的是否真实、几份来源是否真的独立、报告里的陈述是否有证据，还要继续核验。
 
-- brief 是否存在且 approved
-- brief 里的每个 sub-question 是否有 complete finding
-- finding 是否有有效 source-backed evidence
-- source index 是否缺失
-- finding 引用的 `source_ids` 是否能在 source index 找到
-- 来源是否是 rejected、attempted、failed、empty、duplicate、out_of_scope
-- verification 是否有 CRITICAL/HIGH gap
-- research budget 是否耗尽
+## 三道质量检查各管什么
 
-评分权重也很清楚：覆盖率 50%，来源健康 25%，verification gap 25%。只要有 critical blocker，状态就是 BLOCKED。否则根据 blocker 和分数决定 READY 或 NEEDS_MORE_RESEARCH。
+### 复核任务结果
 
-面试表达：
+任务复核员只看当前任务的资料，比较主要研究、独立补证和反面证据，决定任务通过、受阻还是重新研究。随后，全局核验会对照已批准的研究计划，看各个问题是否覆盖、还有哪些缺口、是否允许进入报告阶段。
 
-我没有让模型自己说“差不多够了”。模型可以给语义判断，但硬规则先判断结构完整性和证据有效性。只有 readiness 给出 `overall_status: READY` 和 `recommendation: proceed_to_report`，报告阶段才会放行。
+### 判断研究是否足以写报告
 
-### 亮点五：stale readiness 防护
+[`src/evaluator.py`](https://github.com/tivon-x/deep-research/blob/master/src/evaluator.py) 检查研究计划是否批准、每个子问题是否有完整发现、引用的来源是否存在且可用、引用是否来自已经提取的正文而非搜索摘要，以及高优先级缺口是否关闭。
 
-`/readiness.json` 里有 `input_snapshot`，记录参与评估的结构化输入文件 hash 和 size。Report gate 会重新计算当前 snapshot，如果 findings、sources 或 verification 变了，旧 readiness 不能继续用。
+不同网址若提供相同内容，只算一份独立证据；同一网址的内容发生变化，则保留各个版本并提示。检查结果还记下本次使用的输入版本。报告生成前会重新比对：如果后来有人改了发现、来源、核验结果或待写入的陈述，旧的“可以写报告”结论就失效。
 
-面试表达：
+轻量模型可以补充判断研究是否充分，但不能推翻代码发现的阻断问题。这里的分数是工程上的停止条件，不能当成答案准确率。
 
-这个点解决的是“评估和输入不一致”。如果验证后又改了 findings，原来的 READY 结论就不可信了，所以 report gate 必须要求 readiness 刷新。
+### 核对报告里的每条陈述
 
-### 亮点六：来源质量从记录层开始管
+报告员先列出准备写入报告的陈述。系统再检查每条陈述引用的来源是否存在、所引原话能否在提取的正文中找到、陈述是否确实出现在报告里，以及重要陈述是否缺证、证据薄弱或被反证推翻。任务核验、研究充分性和陈述核对都通过，报告才会放行。
 
-`SourceRecord` 不只是 title 和 url，还包含：
+这几道检查能降低无依据内容进入报告的机会，但不能证明现实世界中的每个结论都绝对正确。
 
-- `status`: attempted、accepted、rejected、digested、cited
-- `source_type`: web、mcp、local_file、other
-- `route`: web_search、mcp、local_file、unsupported
-- `quality_status`: usable、failed、empty、duplicate、out_of_scope、unknown
-- `failure_reason`
-- `content_hash`
+## 来源输入和证据链
 
-schema 里规定 attempted 和 rejected 必须带 `failure_reason`，accepted、digested、cited 如果有 quality_status，必须是 usable。evaluator 再把无效来源排除出有效证据。
+[`src/ingestion.py`](https://github.com/tivon-x/deep-research/blob/master/src/ingestion.py) 支持网址、本地 Markdown、TXT 和文字型 PDF。用户提供网址时，系统先登记；研究计划获批、具体任务确实需要它时，才提取网页正文。
 
-面试表达：
+研究员先搜索，得到候选网址、标题和摘要；再只提取选中网址的正文。每条来源会记录处理阶段、可用性、失败原因、用于识别重复内容的指纹，以及正文保存位置。提取失败、内容为空、重复内容或只有搜索摘要的结果，都不能当成有效证据。
 
-我把来源当成有生命周期的对象，而不是引用列表。搜到一个 URL 不代表它能当证据，失败、空内容、重复和范围外来源都要记录，但不能计入有效 evidence。
+外部工具服务是可选来源。只有它的能力与问题匹配、工具也成功加载，系统才建议研究员使用；加载失败会留下经过处理的错误信息，并继续使用网页搜索，不把凭据或原始异常展示给界面。
 
-### 亮点七：长期记忆不绕过当前流程
+## 预算、停滞和收尾
 
-项目把 `/memory/` 路由到 `StoreBackend`，底层是自实现的 `JsonlMemoryStore`。长期记忆包括 run record、topic record、source record 和 topic index。
+[`src/config.py`](https://github.com/tivon-x/deep-research/blob/master/src/config.py) 集中规定研究轮数、并行数、搜索和模型调用次数、总用时，以及留给最后核验和写报告的资源。配置值不合法时，启动会指出具体字段。[`src/budget.py`](https://github.com/tivon-x/deep-research/blob/master/src/budget.py) 据此决定当前处于哪个阶段：
 
-关键点是，`build_memory_assets` 有严格门禁：
+| 阶段 | 系统做什么 |
+|---|---|
+| 正常研究 | 可以创建和分派研究任务 |
+| 准备收尾 | 停止新增宽泛任务，仍可针对缺口补证，并保留核验和写报告的资源 |
+| 预算用尽 | 停止创建和分派新的研究任务 |
 
-- `/research_run.json`、`/research_brief.json`、`/readiness.json`、`/final_report.md` 必须存在
-- readiness 必须 READY 且 recommendation 是 proceed_to_report
-- run 必须 completed 或处于 reporting/report 阶段
-- `/report_exports/report_summary.json`、`/report_exports/source_appendix.json`、`/report_exports/export_manifest.json` 必须存在
-- manifest 必须列出必需导出文件
+提前收尾是为了避免“资料查完了，却没钱或没时间写报告”。[`src/progress.py`](https://github.com/tivon-x/deep-research/blob/master/src/progress.py) 还会判断研究是否真的推进：完成任务、关闭关键缺口、支持重要陈述和覆盖子问题才算进展，单纯多找到几个网址不算。连续没有实质进展时，系统停止新增宽泛任务，只允许定向补证或收尾。
 
-面试表达：
+预算控制的是资源使用和流程，不能提高事实准确率。配置里的默认上限也不是实际吞吐或成本。
 
-我把长期记忆当成“完成后可复用的研究资产”，不是每轮对话都无脑写入。它只能作为下一次研究的背景，不能替代 scope、verification 和 readiness gate。
+## 运行恢复、审批和取消
 
-## 各模块怎么介绍
+[`src/checkpointing.py`](https://github.com/tivon-x/deep-research/blob/master/src/checkpointing.py) 用 SQLite 保存运行进度。当前只接受新流程保存的记录；旧流程或缺少版本标记的记录会收到明确提示，不能直接恢复。
 
-### `src/agent.py`
+恢复时，已经完成的研究只展示原结果；中断时仍在执行的任务回到“待执行”，但执行次数不倒退；预算计数和已用时间继续累计。有结构化结果却没有最终报告的运行会显示“未完成”，不会伪装成成功。
 
-这是总装配入口。`build_agent()` 调 `create_deep_agent`，注册主模型、Orchestrator 工具、四个 subagent、两个 middleware、checkpointer、backend 和 store。
+范围界定结束后，系统会暂停等待用户确认，再从原位置继续。等待审批时拒绝新的研究请求，避免把两次请求混在一起。命令行和网页入口都在总用时到期时停止执行、保存已完成状态，并保留可恢复的运行记录；只有真正结束后，才释放进程里的运行控制对象。
 
-可讲点：
+## 运行记录和网页展示为什么不能决定任务状态
 
-- `CompositeBackend` 默认走 `StateBackend`，只有 `/memory/` 走 `StoreBackend`。
-- `store=memory_store` 接的是本地 JSONL store。
-- `WorkflowGuardMiddleware` 和 `FileWriteScopeMiddleware(role="orchestrator")` 挂在主 agent 上。
-- `MemorySaver` 当前适合本地运行，生产要换持久化 checkpoint。
+[`src/event_streaming.py`](https://github.com/tivon-x/deep-research/blob/master/src/event_streaming.py) 从运行事件中挑选允许展示的阶段、角色和工具摘要。模型推理过程、逐字输出、工具参数和结果、凭据、绝对路径及内部编号都不会原样展示。
 
-### `src/subagents/*.py`
+[`src/observability.py`](https://github.com/tivon-x/deep-research/blob/master/src/observability.py) 把这些事件和正式状态整理成运行指标、工具使用与错误文件。记录用不可逆标识关联同一次运行；恢复时只合并身份和版本都匹配的完整记录，写入时先写临时文件再替换。由于展示记录可能缺失或延迟，它不能反过来决定任务状态或预算。
 
-每个 subagent 都是一个 dict factory，包含 name、description、system_prompt、tools、middleware、model。它们是无状态的，每次调用要由 Orchestrator 带完整上下文和输出路径。
+[`src/web_api.py`](https://github.com/tivon-x/deep-research/blob/master/src/web_api.py) 只向浏览器提供允许公开的任务、来源、陈述、错误和报告。网页读取正式任务看板，不拿展示文件重建运行状态。事件推送支持断线后补发和保持连接，但仍只是展示。
 
-可讲点：
+## 报告如何变成交付件
 
-- Scoping 有 `request_approval`，负责 HITL。
-- Research 有 Tavily、source routing、source metadata、finding contract、search budget middleware。
-- Verification 只写 verification 状态。
-- Report 只写 final report 和 report exports。
+报告员先整理待写入的陈述；统筹智能体核对证据后，报告员才写最终报告和结构化结果。命令行再通过 [`src/report_exports.py`](https://github.com/tivon-x/deep-research/blob/master/src/report_exports.py) 生成 `final_report.html`、`final_report.pdf`、`source_appendix.html` 和 `claim_audit.json`。
 
-### `src/tools.py`
+导出清单记录必需文件和输入版本。文件缺失、路径越界或输入改变，都会让交付检查失败。长期资料也只在报告及导出齐全后保存，避免把半成品带进下次研究。
 
-这是结构化状态和外部能力的主要入口。
+导出的 PDF 以文字内容稳定可读为目标，不追求复杂排版。输入端只支持文字型 PDF，不识别扫描图片里的文字。
 
-可讲点：
+## 评测怎么分层
 
-- `tavily_search` 用 Tavily 找 URL，再用 `httpx.AsyncClient` 并发抓网页，用 `markdownify` 转 Markdown。
-- `route_research_source` 决定走 web_search、mcp、local_file 还是 unsupported。
-- `build_*_state` 系列工具把 Pydantic 模型转成版本化 JSON。
-- `evaluate_readiness_state` 先跑确定性 evaluator，没 critical blocker 才调用 FLASH 模型做语义补充。
-- `request_approval` 用 LangGraph interrupt 挂起流程。
+[`evals/README.md`](https://github.com/tivon-x/deep-research/blob/master/evals/README.md) 将评测分为三类：
 
-### `src/schemas.py`
+| 类别 | 需要什么 | 能说明什么 |
+|---|---|---|
+| 不依赖外部服务的检查（`product_core`） | 不需要模型、搜索服务或其他外部工具 | 状态更新、权限和固定规则是否退化 |
+| 真实研究试跑（`open_ended`） | 模型和搜索服务，可选自动评分 | 当前流程能否完成一次真实研究 |
+| 固定题目试测（`gaia`） | 模型、搜索服务和本地题目数据 | 在选定样本上的表现 |
 
-这是机器可读状态的契约层。所有结构化文件都对应 Pydantic 模型，字段里有 description，能直接变成工具 schema。
+旧流程与新流程成对比较的历史结果不能算当前版本的成绩。现有评测记录会保存代码版本、题目与提示词版本、服务商、预算、来源和实际运行参数；每道题结束就写入结果。中断后可以跳过已通过的题，重跑失败的题。
 
-可讲点：
+评测会区分四类失败：产品逻辑或答案不合格；外部服务、网络、额度或超时出问题；项目自己的研究预算耗尽；评测程序本身出错。命令成功退出只说明评测程序跑完，题目是否通过还要看 `summary.json` 和 `cases.jsonl`。
 
-- 让 LLM 输出结构化数据时，schema 不是事后校验，而是提示模型按工具输入生成。
-- `SourceRecord` 里有质量契约，防止失败来源被当证据。
-- `ReadinessState` 里同时保留 blocking reasons、warnings、source health、sub-question coverage 和 recommendation。
+### 当前证据边界
 
-### `src/evaluator.py`
+可以说：项目已有无需外部服务的回归检查、Harbor 检查、可续跑的评测记录，以及区分失败原因和汇总单套流程指标的能力。
 
-这是 readiness 的确定性核心，不依赖模型也能工作。
+不能说：当前版本已通过真实服务的完整试跑，取得 GAIA 准确率或自动评分均值，降低了成本、提高了吞吐，或者多智能体带来了量化的质量提升。
 
-可讲点：
+模型与搜索额度恢复后，先重跑真实服务试跑；通过后再按[第 19 阶段评测计划](https://github.com/tivon-x/deep-research/blob/master/DEEP_RESEARCH_AGENT_TEAM_PHASE_19_EVIDENCE_PLAN.md)测 GAIA L1 固定的 20 道题。这 20 道题也只是一次小规模试测，不能代表完整 GAIA 成绩。
 
-- 模型失败时不能让流程崩掉，FLASH 只是补充判断。
-- 硬规则要先于语义判断，比如 source id 缺失、brief 未审批、readiness 过期。
-- `build_input_snapshot` 是 stale readiness 防护的基础。
+## 推荐的源码阅读顺序
 
-### `src/memory_store.py`
+1. **先看一项研究怎样启动。** 读 [`main.py`](https://github.com/tivon-x/deep-research/blob/master/main.py)、[`src/agent.py`](https://github.com/tivon-x/deep-research/blob/master/src/agent.py)、[`src/subagents/`](https://github.com/tivon-x/deep-research/tree/master/src/subagents/) 和 [`src/cli.py`](https://github.com/tivon-x/deep-research/blob/master/src/cli.py)，弄清谁组装智能体、谁保存进度、每个角色有什么工具。
+2. **再追一项任务的变化。** 读 [`src/schemas.py`](https://github.com/tivon-x/deep-research/blob/master/src/schemas.py)、[`src/task_board.py`](https://github.com/tivon-x/deep-research/blob/master/src/task_board.py)、[`src/task_dispatch.py`](https://github.com/tivon-x/deep-research/blob/master/src/task_dispatch.py) 和 [`src/middleware/workflow_guard.py`](https://github.com/tivon-x/deep-research/blob/master/src/middleware/workflow_guard.py)，手工跟踪一项任务从待执行到执行中，再到完成和复核。
+3. **再看权限和放行条件。** 读 [`src/filesystem_policy.py`](https://github.com/tivon-x/deep-research/blob/master/src/filesystem_policy.py)、[`src/middleware/file_write_scope.py`](https://github.com/tivon-x/deep-research/blob/master/src/middleware/file_write_scope.py)、[`src/middleware/assignment_read_scope.py`](https://github.com/tivon-x/deep-research/blob/master/src/middleware/assignment_read_scope.py)、[`src/evaluator.py`](https://github.com/tivon-x/deep-research/blob/master/src/evaluator.py) 和 [`src/tools.py`](https://github.com/tivon-x/deep-research/blob/master/src/tools.py)，区分提示词建议与代码限制。
+4. **再看出错后怎样继续。** 读 [`src/config.py`](https://github.com/tivon-x/deep-research/blob/master/src/config.py)、[`src/budget.py`](https://github.com/tivon-x/deep-research/blob/master/src/budget.py)、[`src/run_controller.py`](https://github.com/tivon-x/deep-research/blob/master/src/run_controller.py)、[`src/checkpointing.py`](https://github.com/tivon-x/deep-research/blob/master/src/checkpointing.py)、[`src/progress.py`](https://github.com/tivon-x/deep-research/blob/master/src/progress.py)、[`src/event_streaming.py`](https://github.com/tivon-x/deep-research/blob/master/src/event_streaming.py) 和 [`src/observability.py`](https://github.com/tivon-x/deep-research/blob/master/src/observability.py)。重点看超时、取消、重复调用和重启。
+5. **最后看交付和评测。** 读 [`src/web_api.py`](https://github.com/tivon-x/deep-research/blob/master/src/web_api.py)、[`web/README.md`](https://github.com/tivon-x/deep-research/blob/master/web/README.md)、[`src/report_exports.py`](https://github.com/tivon-x/deep-research/blob/master/src/report_exports.py)、[`evals/README.md`](https://github.com/tivon-x/deep-research/blob/master/evals/README.md)、[`evals/experiments.py`](https://github.com/tivon-x/deep-research/blob/master/evals/experiments.py) 和 [`harbor/tasks/`](https://github.com/tivon-x/deep-research/tree/master/harbor/tasks/)，分清运行状态、网页展示、报告和评测结果。
 
-这是本地 JSONL-backed LangGraph `BaseStore` 实现。
+## 面试问题：从项目出发
 
-可讲点：
+### 1. 为什么拆成多个智能体？一个不够吗？
 
-- append-first JSONL 适合本地开发，重放日志可恢复 store 状态。
-- 支持 get、put、search、list namespaces 和 async batch。
-- 加了锁，避免同进程并发写乱序。
+一个智能体能完成短任务。这个项目把范围确认、查资料、独立复核和写报告拆开，是为了让不同角色只拿到所需工具和文件，也让复核不由原研究员自己完成。代价是任务状态、并行执行和恢复更复杂，所以没有继续增加动态角色。
 
-### `src/cli.py`
+### 2. 模型能靠改写任务说明扩大权限吗？
 
-这是用户入口和持久化边界。
+不能。模型只提交任务编号。目标、研究方法和读写路径由代码从任务看板生成，执行前会覆盖模型原来的任务描述。
 
-可讲点：
+### 3. 为什么既有内部任务看板，又有任务清单文件？
 
-- CLI 负责初始化 MCP，构建 agent，处理 interrupt，resume 后继续执行。
-- 最终从 StateBackend 提取虚拟文件，落盘到 `research/`。
-- `thread_id` 是续跑指针，不是业务问题本身。
+内部看板负责调度、状态更新和运行恢复。任务清单文件只供界面展示、保存和审计。如果让展示文件反过来改看板，旧文件就可能覆盖正在运行的状态。
 
-### `evals/`
+### 4. 多名研究员怎样避免重复做同一项任务？
 
-这是项目的评测体系，不只是 pytest 单测。
+研究员启动前，系统先把本批任务占住，并将每项任务绑定到一次工具调用。已经从“待执行”变成“执行中”的任务不能再次领取；结果写回时还会核对执行次数和更新记录。
 
-可讲点：
+### 5. 研究员怎样避免读到别人的资料？
 
-- `single-step` 检查 scoping、research tool choice、verification、report。
-- `full-turn` 检查完整研究链路。
-- `multi-turn` 检查同一个 `thread_id` 的连续性。
-- mocked 模式用确定性搜索 fixture，live 模式跑真实模型和 Tavily。
-- 可选 LLM judge 检查报告是否回答问题、是否基于 findings、是否有引用和幻觉风险。
+角色权限先限制能写的目录；每次任务的说明再精确列出能读的文件。研究员不能列出或搜索共享目录，复核员也只能看当前任务列出的文件。
 
-## 面试高频追问和建议回答
+### 6. 研究员说做完了，系统怎样确认？
 
-### 为什么不直接让一个 Agent 搜索并写报告
+系统检查发现、来源和过程记录是否齐全，文件是否符合格式、是否属于这项任务，所引用的来源编号是否存在。模型口头说“完成”不会直接改变任务状态。
 
-单 Agent 可以跑通 Demo，但线上问题很难定位。它什么时候该停、是否覆盖所有子问题、引用来源是否有效、失败后从哪里恢复，都没有稳定边界。
+### 7. 任务复核、研究充分性检查和陈述核对有什么区别？
 
-我这里拆成多个角色，不是为了堆概念，而是把职责拆开：Scoping 控制方向，Research 只负责证据，Verification 负责审计，Readiness 负责可计算停止条件，Report 只做最终表达。这样每一步都有产物，有门禁，也能单独测试。
+任务复核看这项任务做得怎样、还有什么缺口；研究充分性检查从全局判断能否停止查资料；陈述核对逐条检查报告想说的话有没有正文证据。三项都要通过才能放行报告。
 
-### 为什么不只靠 prompt
+### 8. 为什么每次检查都要记录输入版本？
 
-prompt 适合表达意图，但不适合做权限和流程控制。比如“不要在 brief 审批前搜索”，模型可能忘；“research-agent 不要写 `/sources.json`”，模型也可能误写。
+检查通过后，发现、来源或报告可能又被修改。生成报告前要比对版本，避免用旧的“已通过”结论放行新内容。
 
-所以项目里把这些规则下沉到 middleware。prompt 告诉模型应该怎么做，middleware 决定它能不能做。
+### 9. 为什么预算还没用完就开始收尾？
 
-### 为什么需要 `/readiness.json`，verification 不够吗
+如果等资源完全耗尽，可能连核验和写报告的机会都没有。接近上限时，系统停止新增宽泛研究，仍允许针对关键缺口补证，把剩余资源留给收尾。
 
-Verification 是一个智能体的质量审计，适合检查语义完整性和研究质量，但它本身还是模型输出。Readiness 是机器可读的客观门禁，能检查结构化文件是否齐全、source id 是否对得上、来源质量是否可用、verification 是否还有高优先级 gap、输入是否变化。
+### 10. 进程重启后，任务和预算会不会清零？
 
-两者分工是：Verification 看内容质量，Readiness 看流程和证据契约能不能支撑报告输出。
+不会。任务状态、预算计数和已用时间会保存。中断时还在执行的任务重新变成“待执行”，但执行次数不倒退，新进程从已保存的预算继续计算。
 
-### 为什么要维护 Markdown 和 JSON 两套状态
+### 11. 为什么运行指标不参与工作流判断？
 
-Markdown 给人读，也方便模型综合和写报告。JSON/JSONL 给程序读，用于 workflow guard、readiness evaluator、CLI 持久化和长期记忆。
+指标是从事件整理出来的，可能延迟或不完整。任务能否继续，只看正式状态和结构化研究文件；网页上的展示数据和指标不参与判断。
 
-只用 Markdown，程序很难可靠判断“这个子问题是否 complete”或“source_id 是否存在”。只用 JSON，人工审阅和报告写作又不自然。这个项目保留两层，是为了让人和机器各自读适合自己的格式。
+### 12. 没有模型或搜索额度，怎样证明项目已经实现？
 
-### checkpoint 和 memory 有什么区别
+可以检查状态更新、权限、任务产物校验、恢复、预算和报告放行规则，也能核对评测记录是否完整。这些能证明工程约束已实现，不能代替真实研究的准确率、自动评分和成本数据。
 
-checkpoint 是当前线程的执行状态，用来恢复这一次任务。比如 interrupt 后用同一个 `thread_id` resume。
+## 面试问题：把经验推广到一般系统
 
-memory 是跨会话复用的研究资产，比如某个 topic 的历史报告摘要、source first-seen 信息和 topic index。checkpoint 服务当前流程，memory 服务未来流程。这个项目把普通运行文件放在 StateBackend，把 `/memory/` 路由到 StoreBackend，就是为了划清这条边界。
+### 13. 多智能体一定比一个智能体好吗？
 
-### thread_id 怎么设计
+不一定。不同角色需要不同权限、独立复核，或者能并行查找相互独立的证据时，拆分才有收益。任务短、资料高度共享时，一个智能体加工具更简单。本项目固定一个统筹角色和四个专门角色，没有做动态角色注册。
 
-当前 CLI 默认生成 `research-<随机短 id>`，也允许用户通过 `--thread-id` 续跑。面试可以说：在服务端部署时，我会把 LangGraph 的 thread_id 当作编排游标，业务主键作为 state 字段保存，不把订单号、用户问题和 checkpoint id 混成一个东西。
+### 14. 哪些要求写给模型，哪些必须写进代码？
 
-### MCP 在项目里怎么用
+研究策略和表达偏好可以写在提示词里。身份、权限、状态变化、预算和报告放行必须由代码检查。判断方法是：违反这条要求，会不会造成越权、数据混乱或错误交付？会的话，就不能只靠提示词。
 
-MCP 是可选数据源接入层。项目启动时读取 `mcp_config.json`，用 `MultiServerMCPClient` 初始化工具。如果 MCP 工具可用，就把工具加入 research-agent，并把能力描述注入 researcher prompt。Researcher 会先调用 `route_research_source`，当问题和 MCP capabilities 匹配时优先建议 MCP，失败或不匹配再走 Web。
+### 15. 并行研究最容易出什么问题？
 
-这里的重点是“能力发现和路由”，不是无脑把所有工具塞给模型。
+常见问题是同一任务重复执行、后写的结果覆盖先写的结果、研究员读到别人的资料、过期结果覆盖新结果，以及出错后忘记释放并行名额。项目分别用任务预占、集中更新、任务专属文件、执行次数校验和结束时释放来处理。
 
-### Source routing 有什么价值
+### 16. 运行记录和长期记忆有什么区别？
 
-它让来源获取变成显式决策。Web、MCP、local_file、unsupported 不是混在一起，而是有 route、source_type、fallback_routes、status 和 warnings。
+运行记录保存同一次研究做到哪里，供中断后继续。长期记忆保存已经完成的主题和来源，供以后的研究参考。证据检查没通过、报告导出不完整或研究未结束，都不能写入长期记忆。
 
-当前 Phase 5 v1 没实现真实 local-file ingestion，只记录 route contract。这个点面试时要主动说，避免被追问时显得夸大。
+### 17. 怎样评测一个研究智能体？
 
-### 搜索预算怎么控制
+先查代码能稳定保证的规则，例如权限、状态变化、预算、恢复和输出格式；再用真实模型和搜索服务跑完整任务，看任务成功率、评分、失败原因、调用量和耗时。两层证据不能互相替代，外部服务失败也要单独统计。
 
-项目有两层控制。prompt 里建议简单问题 2 到 3 次搜索、复杂问题 4 到 5 次搜索，代码里 `SearchUsageLimitMiddleware` 对 `tavily_search` 做硬上限，默认来自 `RESEARCH_SEARCH_TOOL_LIMIT=15`。到达上限时，工具返回会明确要求停止搜索并综合已有结果。
+### 18. 外部接口失败时怎么处理？
 
-面试可以补一句：预算不是为了省钱这么简单，也是为了避免 Agent 空转和重复搜索。
+先保存题目结果、运行参数、日志和恢复点，再分清是外部环境、产品本身、项目预算还是评测程序的问题。只对明确的短暂外部故障重试；权限拒绝或数据校验失败，重试也不会解决。没有证据时不靠增加预算或降低检查标准掩盖问题。
 
-### 如何处理模型失败或语义评估失败
+### 19. 当前隔离方案能直接用于多客户生产环境吗？
 
-`evaluate_readiness_state` 会先跑确定性 evaluator。如果有 critical blocker，直接返回，不浪费 FLASH 模型调用。如果没有 critical blocker，再调用 `assess_semantic_readiness`。如果 FLASH 调用失败，代码会记录 warning，保留确定性 readiness，不让整个流程崩掉。
+不能。当前限制的是智能体在虚拟工作区能读写的文件，适合同一服务内部的任务隔离。互不信任的客户还需要独立凭据、数据库权限、进程或容器隔离、网络限制和审计。
 
-这个回答能体现你知道模型调用是外部依赖，失败是正常情况。
+### 20. 如果扩展到多进程，先改什么？
 
-### 为什么 report exports 必须存在后才能写 memory
+进程内的并行名额要改成跨进程的队列或租约；任务更新需要数据库事务或带版本检查的写入；领走任务的记录还要支持超时回收。现有的任务编号和输出约定可以继续用，但进程内锁不能直接当作跨进程锁。
 
-长期记忆不是为了存一份最终报告，而是为了给未来研究提供可检索的结构化资产。`report_summary.json` 提供摘要，`source_appendix.json` 提供来源列表和失败来源信息，`export_manifest.json` 确认导出完整。如果这些不存在，memory 写进去就不完整，下一次读取会污染上下文。
+### 21. 怎样降低无依据内容进入报告的概率？
 
-### 项目如何评测
+先排除失败或只有摘要的来源；研究员必须记录来源编号；写报告前检查问题覆盖、来源独立性，并逐条核对引用原话与网页正文。每一步挡住不同的错误，检查通过也不能等同于事实正确率。
 
-本项目有三层评测：
+### 22. 下一步最值得做什么？
 
-- 单元测试：测 middleware、schema、evaluator、memory store、MCP 生命周期等确定性逻辑。
-- 流程评测：`evals/` 通过 public graph entrypoints 跑 single-step、full-turn、multi-turn。
-- 报告质量评测：可选 LLM judge 检查 final report 是否回答问题、是否基于 findings、结构是否清晰、是否引用来源、幻觉风险。
+先在真实模型和搜索服务上完成一次研究试跑，再测固定的 GAIA 小样本，拿到质量和资源消耗数据后决定优化方向。在结果出来前继续加角色、队列或展示面板，没有明确收益。
 
-这比只看一次人工运行结果可靠，因为它能把 prompt、工具、状态和报告产物一起纳入回归。
+## 面试时主动说明的局限
 
-## 可以主动承认的短板
+- 真实服务的完整试跑仍被模型和搜索额度阻断，不能称为端到端验收通过。
+- 固定的 20 道 GAIA 题尚未运行，没有准确率结果。
+- 目前没有自动评分均值，也没有成本或吞吐提升数字。
+- 读写隔离只覆盖虚拟工作区，不是操作系统级沙箱。
+- 并行控制目前只在单进程内有效，多进程还需要跨进程协调和事务。
+- 语义判断依赖模型；调用失败时，只能保留代码规则的结论。
+- 输入只支持文字型 PDF；导出的 PDF 以文字可读为目标。
 
-### 生产 checkpoint 还需要替换
-
-当前 `src/agent.py` 用的是 `MemorySaver`。它适合本地开发和 CLI 演示，但生产环境应该换成 Postgres、Redis 或 LangGraph 平台提供的持久 checkpointer。否则进程重启后，thread checkpoint 会丢。
-
-这样讲不是自曝短板，而是说明你知道本地 demo 和生产部署的边界。
-
-### memory namespace 需要多租户隔离
-
-当前 `StoreBackend` 的 namespace 是常量 `("deep_research", "memory")`，适合本地单用户项目。多用户部署时，需要把 user_id、tenant_id 或 assistant_id 纳入 namespace，避免不同用户共享记忆。
-
-### local-file ingestion 只是路由契约
-
-项目已经有 `local_file` route 和 source schema，但 Phase 5 v1 没做真实本地文件解析。面试时可以说：这部分我保留了接口边界，但没有在没有安全设计的情况下直接让 Agent 读本地文件。
-
-### “并行研究”的关键是状态隔离，不一定是物理并发
-
-代码和 prompt 支持把多个研究任务拆开执行，并且通过 task-scoped 文件避免共享状态覆盖。但实际执行并发度要看 Deep Agents/LangGraph 的调度方式和调用模式。面试里不要夸成自己手写了复杂并发调度，可以说这个项目先解决了并行安全的状态设计。
-
-### 来源可信度还能继续增强
-
-当前来源质量主要检查 status、quality_status、failure_reason、source id 和 duplicate URL。后续可以加 domain allowlist、publisher trust score、内容 hash 去重、引用 span 校验、时间新鲜度规则、cross-source contradiction 检测。
-
-## 简历上可以怎么写
-
-### 版本一，偏工程实现
-
-设计并实现一个基于 Deep Agents、LangChain 和 LangGraph 的多智能体深度研究系统，将模糊用户问题拆解为可审批 research brief、并行 research findings、verification 结果、readiness gate 和最终引用报告。通过 WorkflowGuardMiddleware、FileWriteScopeMiddleware 和 SearchUsageLimitMiddleware 将审批、阶段流转、角色写入权限和搜索预算从 prompt 约束下沉为代码门禁。
-
-### 版本二，偏 Agent 可靠性
-
-构建面向复杂研究任务的 Agent 工作流，使用 StateBackend 管理线程级虚拟工作区，使用 StoreBackend 和本地 JSONL store 持久化跨会话研究记忆。引入 Pydantic 结构化状态、source lifecycle schema、readiness evaluator 和 stale snapshot 检查，确保最终报告只有在研究覆盖、来源质量、验证结果和报告导出均通过后才生成。
-
-### 版本三，偏评测和上线
-
-为多智能体研究系统建立回归评测链路，覆盖 scoping、research tool selection、verification、report generation、full-turn 和 multi-turn 场景。支持 mocked/live 两种模式，可选 LangSmith tracing 和 LLM judge，对搜索预算、必需产物、引用质量、报告结构和人工审批中断进行自动化检查。
-
-## 项目介绍时别这么说
-
-不要说：
-
-- 我用了 LangChain、LangGraph、Deep Agents、Tavily。
-- 我做了一个多智能体系统，可以自动研究任何问题。
-- 我加了 memory，所以它越用越聪明。
-- 我用了 MCP，所以可以接任何工具。
-
-建议改成：
-
-- 我把研究过程拆成可审计的状态机，每一步都有明确产物和门禁。
-- 用户问题先变成已审批 brief，再变成子问题级 findings，最后通过 verification 和 readiness 才能写报告。
-- memory 只在完成报告后写入，并且不能跳过当前 run 的审批和验证。
-- MCP 是可选来源路由，只有能力描述匹配时才进入 researcher 的工具集。
-
-## 可准备的追问清单
-
-### LangGraph
-
-1. interrupt 和普通用户输入有什么区别？
-2. checkpoint 存什么？thread_id 为什么重要？
-3. resume 后节点会不会重跑？副作用怎么处理？
-4. 为什么当前用 MemorySaver，生产怎么替换？
-5. 如果一个节点里有多个 interrupt，resume value 如何对应？
-
-### Agent 架构
-
-1. 为什么拆成四个 subagent？
-2. 为什么 Orchestrator 不直接搜索？
-3. subagent 无状态有什么好处和代价？
-4. 多 Agent 会不会增加调试难度？
-5. 如何防止 Researcher 越权写全局状态？
-
-### 状态和数据契约
-
-1. Markdown 和 JSON 为什么都要保留？
-2. `/readiness.json` 和 `/verification.json` 有什么区别？
-3. finding contract 解决了什么问题？
-4. source id 不一致会在哪里被发现？
-5. input snapshot 为什么能防止 stale readiness？
-
-### 工具和 MCP
-
-1. Tool、Skill、MCP 在项目里分别是什么？
-2. 为什么不把所有工具一次性塞给模型？
-3. MCP 失败后怎么 fallback？
-4. local_file 为什么只做 route contract？
-5. source routing 和普通搜索有什么区别？
-
-### 评测和上线
-
-1. 如何判断 Agent 真的做对了？
-2. mocked eval 和 live eval 分别解决什么问题？
-3. 如何观察搜索预算、工具失败率和报告质量？
-4. bad case 如何进入回归集？
-5. 如果线上发现报告引用了无效来源，如何定位？
-
-## 面试时可以直接背的回答
-
-### 回答一：为什么这个项目不是普通 RAG
-
-普通 RAG 重点是检索和生成，这个项目重点是研究工作流。它也有来源获取，但我更关心从用户问题到最终报告之间的状态演化：scope 是否被批准，子问题是否全覆盖，finding 是否有对应 source index，source 是否能当证据，verification 是否还有高优先级 gap，readiness 是否基于最新输入。RAG 是其中的信息获取部分，不是整个系统。
-
-### 回答二：这个项目的难点在哪里
-
-难点不在调模型，而在让模型产物变成可判断、可恢复、可追责的工程状态。比如 Researcher 写了一段 findings，人读起来可能还行，但程序不知道它对应哪个子问题、用了哪些 source、source 是否有效。所以我加了 finding contract、source index、verification 和 readiness，把自然语言产物旁边补一层机器可读契约。
-
-### 回答三：为什么要有人机审批
-
-研究型 Agent 最怕一开始理解错方向。Scope 错了，后面搜得越多浪费越大。审批点放在 brief 之后、research 之前，这时成本最低，而且用户能看到核心问题、子问题、范围外内容和成功标准。审批通过后再研究，能减少返工和无效 API 调用。
-
-### 回答四：如何降低幻觉
-
-我不把幻觉只当成模型问题，而是从流程上压低风险。第一，研究结果必须绑定 source id。第二，source id 必须存在于 task source index。第三，attempted、rejected、failed、empty、duplicate、out_of_scope 的来源不能算有效证据。第四，verification 会检查 unverified 和 contradicted claims。第五，report 必须等 readiness READY 才能生成。这样即使模型有生成倾向，流程也会要求它把结论落到可检查的证据上。
-
-### 回答五：如何控制成本
-
-成本主要从四处控制：Scoping 先审批，避免方向错导致无效研究；Researcher 每个任务只研究一个子问题，减少重复搜索；SearchUsageLimitMiddleware 对 Tavily 调用做硬上限；FLASH_MODEL_ID 用低成本模型做语义 readiness，主模型只放在编排和关键生成环节。后续还可以加缓存、来源去重和 query 合并。
-
-### 回答六：如何从失败中恢复
-
-流程状态都在 thread state 里，配合 LangGraph checkpoint 和 thread_id 可以恢复当前运行。每个阶段都有结构化文件，失败后能看 `/research_run.json` 的 current_phase、`/research_events.jsonl` 的事件、各 subagent 的输出文件和 guard 返回码。比如 report 被拦住，可以直接看是 verification 未 ready、readiness missing、readiness stale，还是 source quality invalid。
-
-## 如果面试官让你讲源码细节
-
-可以按这个顺序：
-
-1. `src/agent.py`：总装配，用 `create_deep_agent` 把模型、工具、subagents、middleware、backend、store 接起来。
-2. `src/prompts.py`：定义 Orchestrator 和四个角色的流程提示，要求每一步写哪些虚拟文件。
-3. `src/tools.py`：工具层，包含 Tavily 搜索、source routing、approval interrupt、结构化 state builder、readiness 和 memory asset builder。
-4. `src/schemas.py`：Pydantic 契约，保证工具输入和结构化状态一致。
-5. `src/middleware/`：硬门禁，防止流程越权和文件越权。
-6. `src/evaluator.py`：确定性 readiness，决定能不能进入报告。
-7. `src/cli.py`：运行入口，处理 interrupt/resume，并把虚拟文件持久化到本地。
-8. `evals/` 和 `tests/`：证明这些规则不是只写在文档里，而是有回归检查。
-
-## 可以讲的技术取舍
-
-### StateBackend vs 本地文件
-
-StateBackend 更适合服务端和多用户任务，因为中间文件跟 thread 绑定，不会污染本地目录。缺点是大文件和长期保存不适合一直放在 state 里，所以项目只把最终结果由 CLI 落盘，长期可复用资产走 StoreBackend。
-
-### StoreBackend vs 向量库
-
-当前 memory 是 topic/source/run 的结构化记录，用 JSONL store 就够了。它更像研究资产索引，不是语义检索系统。如果后续 memory 规模变大，可以把 topic summary 和 source summary 接入向量库，但那是读 memory 的增强，不影响当前 workflow gate。
-
-### 确定性 evaluator vs LLM judge
-
-确定性 evaluator 适合检查结构完整性和硬规则，比如 source id、status、gap priority、snapshot。LLM judge 适合判断报告是否答题、逻辑是否连贯、是否有明显幻觉。两者不能互相替代。
-
-### 多模型配置
-
-`MAIN_MODEL_ID` 给 Orchestrator，`REPORT_MODEL_ID`、`RESEARCH_MODEL_ID`、`SCOPING_MODEL_ID`、`VERIFY_MODEL_ID` 可以分别覆盖角色模型，`FLASH_MODEL_ID` 给低成本 readiness 语义判断。temperature 全部是 0.0，降低流程型任务的不确定性。
-
-## 你可以反问面试官的问题
-
-1. 你们现在的 Agent 产物是只保存在对话里，还是有机器可读状态？
-2. 你们怎么判断一个 Agent 任务“可以停止”？
-3. 工具失败、来源无效、引用错位时，现在是靠人工发现还是有自动 gate？
-4. 如果引入 memory，你们会默认每轮写入，还是只在任务完成后写入？
-5. 多 Agent 系统里，角色权限是 prompt 约束还是代码约束？
-
-这些问题能把讨论拉回工程质量，不会停在“会不会调框架”。
-
-## 最后要记住的表达顺序
-
-面试时按这个顺序讲：
-
-1. 业务问题：复杂研究任务不能只靠搜索总结，需要可审计流程。
-2. 系统链路：scope、research、verify、readiness、report、memory。
-3. 状态设计：Markdown 给人看，JSON/JSONL 给程序判断。
-4. 硬约束：workflow guard、file write scope、search budget。
-5. 质量闭环：source lifecycle、readiness evaluator、evals。
-6. 技术栈：Deep Agents 是 harness，LangGraph 是运行时，LangChain 是组件层。
-7. 取舍和短板：MemorySaver、namespace、多租户、local-file ingestion、来源可信度增强。
-
-这个顺序比一上来报框架名更稳。它先回答“为什么做”，再回答“怎么做”，最后回答“为什么这个方案靠谱”。
-
-## 参考资料
-
-- LangChain Docs: Deep Agents overview, https://docs.langchain.com/oss/python/deepagents/overview
-- LangChain Docs: Customize Deep Agents, https://docs.langchain.com/oss/python/deepagents/customization
-- LangChain Docs: Deep Agents backends, https://docs.langchain.com/oss/python/deepagents/backends
-- LangChain Docs: Deep Agents human-in-the-loop, https://docs.langchain.com/oss/python/deepagents/human-in-the-loop
-- LangGraph Docs: Interrupts, https://docs.langchain.com/oss/python/langgraph/interrupts
-- 项目源码：`src/agent.py`、`src/tools.py`、`src/evaluator.py`、`src/middleware/`、`src/schemas.py`
-- 项目测试：`tests/`、`evals/`
+这些边界应与已经完成的工程能力一起讲清楚，不能用局部检查推断整体效果。
