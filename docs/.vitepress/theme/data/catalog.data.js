@@ -4,7 +4,7 @@ import { topics, sourceFor } from "./navigation.js";
 
 export const categories = topics;
 export function topic(url) {
-  if (/\/notes\/(china-mobile|petrochina)\//.test(url)) return "笔试与企业认知";
+  if (/\/notes\/(china-mobile|petrochina|cmb-ai)\//.test(url)) return "笔试与企业认知";
   if (/\/notes\/(ml-basics|ml-dl-practice)\//.test(url)) return "机器学习基础";
   if (/\/notes\/dl-basics\//.test(url)) return "深度学习基础";
   if (/\/materials\/aye10032\//.test(url)) return categories[4];
