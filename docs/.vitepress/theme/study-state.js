@@ -3,6 +3,14 @@ import { reactive } from "vue";
 export const storageKey = "agent-interview-prep:study:v1";
 const empty = () => ({ version: 1, focus: false, reading: {}, questions: {} });
 export const study = reactive({ data: empty(), error: "", ready: false });
+export function latestAnsweredQuestion() {
+  let latest;
+  for (const entry of Object.entries(study.data.questions)) {
+    if (!latest || entry[1].updatedAt > latest[1].updatedAt) latest = entry;
+  }
+  return latest?.[0];
+}
+
 let writable = true;
 export function validateState(value) {
   if (

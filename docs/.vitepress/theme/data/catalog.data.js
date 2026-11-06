@@ -1,10 +1,9 @@
 import { createContentLoader, createMarkdownRenderer } from "vitepress";
 import path from "node:path";
-import { topics, sourceFor } from "./navigation.js";
+import { topics, preparationFor, sourceFor } from "./navigation.js";
 
 export const categories = topics;
 export function topic(url) {
-  if (/\/notes\/(china-mobile|petrochina|cmb-ai)\//.test(url)) return "笔试与企业认知";
   if (/\/notes\/(ml-basics|ml-dl-practice)\//.test(url)) return "机器学习基础";
   if (/\/notes\/dl-basics\//.test(url)) return "深度学习基础";
   if (/\/materials\/aye10032\//.test(url)) return categories[4];
@@ -48,6 +47,7 @@ export default createContentLoader(["materials/**/*.md", "notes/**/*.md"], {
           ?.content.replace(/[*`]/g, "") ||
         p.url.split("/").at(-1),
       category: topic(p.url),
+      preparation: p.frontmatter.preparation,
       source: source(p.url),
       description:
         p.frontmatter.description?.slice(0, 100) ||
@@ -70,8 +70,18 @@ export default createContentLoader(["materials/**/*.md", "notes/**/*.md"], {
       links: [],
       groups: [],
     }));
+    const preparations = pages.filter((p) => p.preparation);
+    for (const page of preparations) {
+      for (const key of ["company", "role", "stage"]) {
+        if (typeof page.preparation[key] !== "string" || !page.preparation[key].trim())
+          throw new Error(`${page.url}: preparation.${key} must be a non-empty string`);
+      }
+      if (page.preparation.active !== undefined && typeof page.preparation.active !== "boolean")
+        throw new Error(`${page.url}: preparation.active must be true or false`);
+    }
     const known = new Set(pages.map((p) => p.url));
     raw.forEach((p, i) => {
+      if (preparationFor(pages[i].url, preparations)) pages[i].category = "笔试与企业认知";
       let group;
       pages[i].links = tokens[i]
         .flatMap((t, n) => {

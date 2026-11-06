@@ -24,6 +24,17 @@ export function sourceFor(url) {
   return sources.find((s) => current.startsWith(pagePath(s.root)));
 }
 
+export function preparationFor(url, catalog) {
+  const current = pagePath(url);
+  return catalog
+    .filter((page) => {
+      if (!page.preparation) return false;
+      const entry = pagePath(page.url);
+      return current === entry || (entry.endsWith("/") && current.startsWith(entry));
+    })
+    .sort((a, b) => b.url.length - a.url.length)[0];
+}
+
 export const collectionRoot = (page) => page.url.replace(/(?:README(?:-[^/]+)?|index)?$/i, "");
 export const collectionLinks = (page, catalog) => page.links
   .filter((url) => pagePath(url).startsWith(pagePath(collectionRoot(page))))
@@ -38,7 +49,9 @@ export function collectionFor(url, catalog) {
 }
 
 export function chapterList(url, catalog) {
-  const own = collectionFor(url, catalog);
+  const preparation = preparationFor(url, catalog);
+  if (preparation && !preparation.collection) return [preparation];
+  const own = collectionFor(url, catalog) || preparation;
   if (own) {
     const chapters = collectionLinks(own, catalog);
     const root = collectionRoot(own);

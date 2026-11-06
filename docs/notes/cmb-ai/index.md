@@ -1,6 +1,10 @@
 ---
 title: 招商银行上海分行 AI 应用开发一面准备
 description: 150 分钟准备路线，覆盖 45 秒自我介绍、华为测试 Agent、RAG 与数据集、招行 AI、Python 基础和五分钟模拟。
+preparation:
+  company: 招商银行上海分行
+  role: AI 应用开发
+  stage: 一面
 ---
 
 # 招商银行上海分行 AI 应用开发一面准备

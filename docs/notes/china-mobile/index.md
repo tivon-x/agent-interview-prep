@@ -1,6 +1,10 @@
 ---
 title: 中国移动科技岗笔试复习
 description: 排除图形推理后，按 84 道题整理言语、数量、逻辑、通信技术与中国移动企业文化。
+preparation:
+  company: 中国移动
+  role: 科技岗
+  stage: 笔试
 ---
 
 # 中国移动科技岗笔试复习

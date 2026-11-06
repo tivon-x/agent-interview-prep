@@ -293,7 +293,7 @@ await check(
     await page.getByRole("link", { name: "学习路线", exact: true }).first().click();
     await page.locator(".route-stations a").first().waitFor();
     assert.equal(await page.locator(".route-stations a").count(), 5);
-    await click("近期安排 2026.10");
+    await click("历史计划 2026.10");
     assert.ok(await page.locator("[data-study-section=schedule]").isVisible());
     assert.match(page.url(), /view=schedule/);
     await page.goBack();
@@ -362,8 +362,8 @@ await check(
       1,
     );
     await go("library");
-    assert.equal(await page.locator(".library-section h3").first().innerText(), "资料目录");
-    assert.equal(await page.getByRole("navigation", { name: "资料来源", exact: true }).getByRole("button").count(), 7);
+    assert.equal(await page.locator(".library-section h3").first().innerText(), "资料来源");
+    await page.getByRole("combobox", { name: "资料来源", exact: true }).selectOption("llm-agent-interview-guide");
     assert.ok(await page.locator('.library-rows a[href$="/01-Foundation/"]').count());
     await page.getByLabel("筛选资料").fill("Transformer");
     const rowCount = await page.locator(".library-rows a").count();

@@ -4,7 +4,6 @@ import { onContentUpdated, withBase } from "vitepress";
 const props = defineProps({ kind: String });
 const view = ref(props.kind === "route" ? "full" : "agentic-rag");
 const body = ref();
-const historic = ref(false);
 const stations = ref([
   { label: "ML / DL / 大模型", id: "_1-机器学习、深度学习与大模型基础" },
   { label: "工程实践", id: "_2-rag-与-agent-工程" },
@@ -106,8 +105,6 @@ async function choose(value) {
   applyView();
 }
 onMounted(() => {
-  const date = new Date();
-  historic.value = date < new Date(2026, 9, 1) || date >= new Date(2026, 9, 15);
   sync();
   window.addEventListener("popstate", sync);
   window.addEventListener("hashchange", sync);
@@ -158,7 +155,7 @@ onUnmounted(() => {
           :aria-pressed="view === 'schedule'"
           @click="choose('schedule')"
         >
-          近期安排 <span>2026.10</span>
+          历史计划 <span>2026.10</span>
         </button></template
       ><template v-else
         ><button
@@ -186,7 +183,7 @@ onUnmounted(() => {
       >
     </nav>
     <p v-if="kind === 'route' && view === 'schedule'" class="schedule-note">
-      {{ historic ? "历史安排" : "固定日期安排" }} · 2026 年 10 月 1 日至 14
+      2026 年 10 月 1 日至 14
       日。学习顺序长期有效，安排保留休息与交接时间。
     </p>
     <div class="document-workspace">

@@ -36,24 +36,59 @@ const check = async (name, fn) => {
   await page.screenshot({ path: path.join(out, `${results.length}.png`) });
 };
 
-await check("library uses sources as the primary navigation", async () => {
+const sourceFilter = () => page.getByRole("combobox", { name: "资料来源", exact: true });
+
+await check("library starts with all sources and retains the selected source in history", async () => {
   await go("library");
-  const nav = page.getByRole("navigation", { name: "资料来源", exact: true });
-  assert.equal(await nav.getByRole("button").count(), sources.length);
-  await nav.getByRole("button", { name: /Zero2Agent/ }).click();
+  assert.equal(await sourceFilter().inputValue(), "");
+  assert.equal(await sourceFilter().locator("option").count(), sources.length + 1);
+  assert.equal(await page.locator(".library-rows a").count(), sources.length);
+  await page.locator('.library-rows a[href$="source=zero2agent"]').click();
+  await page.waitForURL(/source=zero2agent/);
   assert.match(page.url(), /source=zero2agent/);
   assert.equal(await page.locator(".library-topic-heading h2").innerText(), "Zero2Agent");
   const links = await page.locator(".library-rows a").evaluateAll((es) => es.map((a) => a.getAttribute("href")));
   assert.ok(links.some((href) => href.endsWith("/learn-agent-interview/")));
   assert.ok(links.every((href) => href.includes("/materials/zero2agent/")));
   await page.reload();
-  await page.getByRole("button", { name: /Zero2Agent/, pressed: true }).waitFor();
-  await nav.getByRole("button", { name: /JavaGuide/ }).click();
+  await page.waitForFunction(() => document.querySelector("#library-source")?.value === "zero2agent");
+  await sourceFilter().selectOption("javaguide");
   await page.goBack();
-  await page.getByRole("button", { name: /Zero2Agent/, pressed: true }).waitFor();
+  await page.waitForFunction(() => document.querySelector("#library-source")?.value === "zero2agent");
   await page.locator('.desktop-nav a[href$="/library"]').click();
   await page.waitForURL(base + "library");
-  await page.getByRole("button", { name: /LLM Agent Guide/, pressed: true }).waitFor();
+  await page.waitForFunction(() => document.querySelector("#library-source")?.value === "");
+  assert.equal(await page.locator(".library-rows a").count(), sources.length);
+});
+
+await check("mobile can reach a company preparation page in two taps", async () => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await go("");
+  await page.getByRole("link", { name: "全部岗位专项" }).click();
+  await page.getByRole("heading", { name: "岗位专项", exact: true }).waitFor();
+  await page.getByRole("link", { name: /AI 应用开发/ }).click();
+  await page.waitForURL(/notes\/cmb-ai\/$/);
+  await page.getByRole("heading", { name: /招商银行上海分行 AI 应用开发一面准备/ }).waitFor();
+  await page.getByRole("link", { name: /岗位专项.*招商银行/ }).filter({ visible: true }).click();
+  await page.waitForURL(/\/preparations$/);
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
+  await page.setViewportSize({ width: 1440, height: 900 });
+});
+
+await check("home resumes the latest saved practice answer", async () => {
+  for (const [id, draft] of [["Q001", "第一题草稿"], ["Q002", "练习草稿保留"]]) {
+    await go("byte-agent/practice?q=" + id);
+    await page.getByLabel("用自己的话回答").fill(draft);
+    await page.waitForFunction(({ id, draft }) =>
+      JSON.parse(localStorage.getItem("agent-interview-prep:study:v1"))?.questions[id]?.draft === draft,
+    { id, draft });
+  }
+  await go("");
+  await page.getByRole("link", { name: /继续练习/ }).click();
+  await page.waitForURL(/q=Q002/);
+  const answer = page.getByLabel("用自己的话回答");
+  await answer.waitFor();
+  assert.equal(await answer.inputValue(), "练习草稿保留");
 });
 
 await check("overview and chapters share one directory and contextual return", async () => {
@@ -71,17 +106,17 @@ await check("overview and chapters share one directory and contextual return", a
   await page.locator('.chapter-rail a[aria-current="page"][href$="/02-evaluation"]').waitFor();
   assert.deepEqual(await chapters(), overview);
   await page.locator(".rail-back").click();
-  await page.getByRole("button", { name: /个人笔记/, pressed: true }).waitFor();
+  await page.waitForFunction(() => document.querySelector("#library-source")?.value === "personal");
 });
 
 await check("every source has usable entries, a matching return and a readable mobile library", async () => {
   for (const { id, root } of sources) {
     await go("library?source=" + id);
-    await page.locator('.topic-nav button[aria-pressed="true"]').waitFor();
+    await page.waitForFunction((id) => document.querySelector("#library-source")?.value === id, id);
     const links = await page.locator(".library-rows a").evaluateAll((es) => es.map((a) => a.getAttribute("href")));
     assert.ok(links.length, id);
     assert.ok(links.every((href) => href.includes(root)), id);
-    const overview = page.locator(".library-topic-heading .primary-button");
+    const overview = page.getByRole("link", { name: "原资料总览 ↗", exact: true });
     if (await overview.count()) {
       await overview.click();
       await page.locator(".reader-body").waitFor();
@@ -90,7 +125,16 @@ await check("every source has usable entries, a matching return and a readable m
     }
   }
   await page.setViewportSize({ width: 375, height: 812 });
-  await go("library?source=zero2agent");
+  await go("library");
+  await page.getByLabel("筛选资料").fill("招商银行");
+  const first = page.locator(".library-rows a").first();
+  await first.waitFor();
+  assert.match(await first.innerText(), /招商银行/);
+  const bounds = await first.boundingBox();
+  assert.ok(bounds.y + bounds.height <= 812);
+  await sourceFilter().selectOption("zero2agent");
+  await page.getByRole("heading", { name: "没有找到匹配的章节。" }).waitFor();
+  await page.getByRole("button", { name: "清空筛选 ↗", exact: true }).click();
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
   await page.screenshot({ path: path.join(out, "library-mobile.png") });
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -274,8 +318,7 @@ await check("legacy topic links filter sources without replacing source navigati
   await page.setViewportSize({ width: 1440, height: 900 });
   await go("library?topic=" + encodeURIComponent("RAG 与检索"));
   assert.equal(await page.getByLabel("按专题筛选").inputValue(), "RAG 与检索");
-  const nav = page.getByRole("navigation", { name: "资料来源", exact: true });
-  assert.equal(await nav.getByRole("button").count(), sources.length);
+  assert.equal(await sourceFilter().inputValue(), "");
   assert.ok(await page.locator(".library-rows a").count());
   await page.getByLabel("筛选资料").fill("no-such-material");
   await page.getByRole("heading", { name: "没有找到匹配的章节。" }).waitFor();

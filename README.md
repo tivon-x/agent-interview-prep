@@ -29,6 +29,18 @@ npm run preview
 
 资料库以资料来源为主入口，沿资料原有目录进入章节；专题仅用于筛选。文章目录和相邻章节共用同一份目录数据，返回资料库时保留来源。
 
+新增岗位专项时，在 `docs/notes/` 下新建一篇 Markdown，或建目录并写 `index.md`。在专项总览的页头设置公司、岗位和当前阶段：
+
+```yaml
+preparation:
+  company: 示例公司
+  role: 后端开发
+  stage: 笔试
+  active: true
+```
+
+总览会自动进入「岗位专项」。只有 `active: true` 的专项才出现在首页「正在准备」。结束准备时设为 `false` 或删去该字段，原文和目录入口会保留。新增轮次可以更新 `stage`，再从总览链接同目录的子文档。通用知识直接链接到资料库原文。
+
 目录页设置 `chapterGroups: true` 后，章节导航会按该页的二级标题分组，支持折叠；当前文章所在分组自动展开。无分组的目录继续平铺显示，相邻章节仍按原始阅读顺序跳转。
 
 导航回归可在构建并启动预览后运行 `npm run verify:navigation`；截图、检查结果与浏览器 trace 保存在 `output/playwright/navigation/`。

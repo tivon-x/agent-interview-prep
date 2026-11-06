@@ -17,15 +17,18 @@ import {
 } from "vitepress";
 import { VPNavBarSearch } from "vitepress/theme-without-fonts";
 import { data as catalog } from "./data/catalog.data.js";
-import { chapterList, chapterTree, collectionFor, pagePath, sourceFor } from "./data/navigation.js";
+import { chapterList, chapterTree, collectionFor, pagePath, preparationFor, sourceFor } from "./data/navigation.js";
 import ChapterNavigation from "./components/ChapterNavigation.vue";
-import { initStudy, study, saveStudy } from "./study-state.js";
+import { initStudy, latestAnsweredQuestion, study, saveStudy } from "./study-state.js";
 
 const HomePage = defineAsyncComponent(
   () => import("./components/HomePage.vue"),
 );
 const LibraryPage = defineAsyncComponent(
   () => import("./components/LibraryPage.vue"),
+);
+const PreparationsPage = defineAsyncComponent(
+  () => import("./components/PreparationsPage.vue"),
 );
 const DocumentPage = defineAsyncComponent(
   () => import("./components/DocumentPage.vue"),
@@ -51,6 +54,7 @@ const kind = computed(() =>
     : {
         "index.md": "home",
         "library.md": "library",
+        "preparations.md": "preparations",
         "reading-path.md": "route",
         "notes/project-defense.md": "project",
         "byte-agent/practice.md": "practice",
@@ -63,7 +67,11 @@ const metadata = computed(() =>
 );
 const documentUrl = computed(() => metadata.value?.url || "/" + page.value.relativePath.replace(/\.md$/, ""));
 const source = computed(() => sourceFor(documentUrl.value));
-const libraryUrl = computed(() => "/library" + (source.value ? "?source=" + source.value.id : ""));
+const preparation = computed(() => preparationFor(documentUrl.value, catalog)?.preparation);
+const catalogUrl = computed(() => preparation.value
+  ? "/preparations"
+  : "/library" + (source.value ? "?source=" + source.value.id : ""));
+const resumeQuestion = computed(() => themeReady.value ? latestAnsweredQuestion() : undefined);
 const questionPages = [
   { title: "360 题题库", url: "/byte-agent/question-bank" },
   { title: "闭卷练习", url: "/byte-agent/practice" },
@@ -71,6 +79,7 @@ const questionPages = [
   { title: "冲刺安排", url: "/byte-agent/review-plan" },
 ];
 const activeNav = computed(() => {
+  if (kind.value === "preparations" || preparation.value) return "/preparations";
   if (kind.value === "route") return "/reading-path";
   if (kind.value === "project") return "/notes/project-defense";
   if (documentUrl.value.startsWith("/byte-agent/")) return "/byte-agent/question-bank";
@@ -338,6 +347,7 @@ onUnmounted(() => {
     <main id="VPContent" tabindex="-1">
       <HomePage v-if="kind === 'home'" />
       <LibraryPage v-else-if="kind === 'library'" />
+      <PreparationsPage v-else-if="kind === 'preparations'" />
       <PracticePage v-else-if="kind === 'practice'" />
       <DocumentPage
         v-else-if="kind === 'route' || kind === 'project'"
@@ -355,7 +365,7 @@ onUnmounted(() => {
       </section>
       <div v-else class="reader-frame VPDoc">
         <aside class="chapter-rail" aria-label="章节导航">
-          <a class="rail-back" :href="href(libraryUrl)">← {{ source?.title || "资料库" }}</a>
+          <a class="rail-back" :href="href(catalogUrl)">← {{ preparation ? "岗位专项" : source?.title || "资料库" }}</a>
           <nav>
             <ChapterNavigation :key="cleanPath" :items="chapterNodes" :current="cleanPath"
               :numbered="!chapterNodes.some((item) => item.children)" />
@@ -364,8 +374,8 @@ onUnmounted(() => {
         </aside>
         <div class="reader-column">
           <div class="reader-tools">
-            <a :href="href(libraryUrl)"
-              >资料库 / {{ source?.title || (documentUrl.startsWith('/byte-agent/') ? '360 题自测' : '资料来源') }}</a
+            <a :href="href(catalogUrl)"
+              >{{ preparation ? '岗位专项 / ' + preparation.company : '资料库 / ' + (source?.title || (documentUrl.startsWith('/byte-agent/') ? '360 题自测' : '资料来源')) }}</a
             >
             <div class="reader-actions">
               <div class="reader-navigation">
@@ -401,8 +411,8 @@ onUnmounted(() => {
             <span>360 道题 · 21 个专题 · 个人自测</span
             ><a
               class="primary-button"
-              :href="href('/byte-agent/practice?q=Q001')"
-              >进入闭卷练习 ↗</a
+              :href="href('/byte-agent/practice?q=' + (resumeQuestion || 'Q001'))"
+              >{{ resumeQuestion ? '继续练习' : '进入闭卷练习' }} ↗</a
             >
           </div>
           <Content class="vp-doc reader-body" />

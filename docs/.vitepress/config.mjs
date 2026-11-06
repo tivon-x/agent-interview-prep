@@ -89,6 +89,7 @@ export default {
     returnToTopLabel: "回到顶部",
     docFooter: { prev: false, next: false },
     nav: [
+      { text: "岗位专项", link: "/preparations" },
       { text: "学习路线", link: "/reading-path" },
       { text: "资料库", link: "/library" },
       { text: "题库", link: "/byte-agent/question-bank" },
