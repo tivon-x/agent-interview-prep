@@ -26,7 +26,7 @@ for (const page of catalog.filter((page) => page.preparation)) {
               <p v-if="entry.description">{{ entry.description }}</p>
             </div>
             <span class="preparation-stage">{{ entry.preparation.stage }}<span v-if="entry.preparation.active"> · 正在准备</span></span>
-            <span class="outline-arrow" aria-hidden="true">↗</span>
+            <span class="outline-arrow" aria-hidden="true">→</span>
           </a>
         </li>
       </ul>

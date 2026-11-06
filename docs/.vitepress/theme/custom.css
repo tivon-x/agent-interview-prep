@@ -204,14 +204,6 @@ svg {
   font-weight: 650;
   letter-spacing: 0.03em;
 }
-.site-brand small {
-  display: block;
-  font-size: 9px;
-  line-height: 1.5;
-  letter-spacing: 0.18em;
-  font-weight: 500;
-  margin-top: 3px;
-}
 .desktop-nav {
   display: flex;
   gap: 32px;
@@ -361,10 +353,19 @@ svg {
 }
 .home-hero {
   display: grid;
-  grid-template-columns: 1.1fr 1fr;
-  gap: clamp(40px, 6vw, 88px);
-  align-items: center;
-  padding: 16px 0 56px;
+  gap: var(--space-8);
+  align-items: start;
+  padding-bottom: var(--space-8);
+}
+.home-hero:has(.learning-outline) {
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+}
+.hero-copy h1 {
+  font: 600 clamp(30px, 4vw, 52px)/1.4 var(--study-display);
+  letter-spacing: -0.035em;
+  color: var(--study-ink);
+  margin: var(--space-3) 0 var(--space-6);
+  text-wrap: balance;
 }
 .edition-dot {
   display: inline-block;
@@ -373,15 +374,6 @@ svg {
   border-radius: 50%;
   background: var(--study-accent);
   margin: 0 8px 1px 0;
-}
-.hero-copy h1 {
-  font-family: var(--study-display);
-  font-size: clamp(54px, 5vw, 72px);
-  font-weight: 600;
-  line-height: 1.32;
-  letter-spacing: -0.055em;
-  color: var(--study-ink);
-  margin: 24px 0 22px;
 }
 .hero-copy h1 em {
   color: var(--study-accent);
@@ -393,15 +385,21 @@ svg {
   flex-wrap: wrap;
   gap: 8px 24px;
 }
-.continue-note,
-.preparation-empty {
-  font-size: 14px;
-  line-height: 1.75;
-  color: var(--vp-c-text-2);
+.home-actions .primary-button {
+  max-width: 100%;
+  gap: var(--space-4);
 }
-.continue-note {
-  max-width: 440px;
-  margin-top: 12px;
+.home-actions .primary-button > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.home-actions .continue-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 400;
+}
+.home-actions .primary-button strong {
+  font-weight: 600;
 }
 .learning-outline {
   padding: 24px 28px;
@@ -423,9 +421,6 @@ svg {
 }
 .outline-heading .text-link {
   gap: 8px;
-}
-.preparation-empty {
-  margin: 16px 0 4px;
 }
 .preparation-list {
   margin: 0;
@@ -482,7 +477,7 @@ svg {
 }
 .home-shortcuts {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   gap: 24px;
   padding-top: 16px;
   border-top: 1px solid var(--vp-c-divider);
@@ -544,7 +539,7 @@ svg {
   display: grid;
   gap: 4px;
   min-width: 0;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--vp-c-text-2);
 }
 .filter-row > span {
@@ -594,25 +589,18 @@ textarea::placeholder {
   font-size: 13px;
   color: var(--vp-c-text-2);
 }
-.library-row-labels {
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) 110px;
-  gap: 20px;
-  padding: 10px 32px 10px 44px;
-  background: var(--vp-c-bg-soft);
-  font-size: 13px;
-  color: var(--vp-c-text-2);
-}
 .library-rows > a {
   display: grid;
-  grid-template-columns: 24px minmax(0, 1.2fr) minmax(0, 1fr) 110px 12px;
-  gap: 20px;
-  padding: 20px 0;
+  grid-template-columns: 24px minmax(0, 1fr) minmax(0, 200px) 16px;
+  gap: var(--space-4);
+  padding: var(--space-4) 0;
   border-bottom: 1px solid var(--vp-c-divider);
   align-items: baseline;
 }
-.source-overview > a {
-  grid-template-columns: 24px minmax(0, 1.2fr) minmax(0, 1fr) 12px;
+.library-rows > a > span:last-child {
+  grid-column: -2;
+  grid-row: 1;
+  color: var(--vp-c-brand-1);
 }
 .row-number {
   font-size: 13px;
@@ -631,6 +619,7 @@ textarea::placeholder {
   line-height: 1.7;
 }
 .library-rows p {
+  margin-top: var(--space-1);
   font-size: 14px;
   color: var(--vp-c-text-2);
   line-height: 1.8;
@@ -1200,34 +1189,63 @@ textarea::placeholder {
   gap: 24px;
   font-size: 13px;
 }
+.practice-page {
+  max-width: 1100px;
+  padding-top: var(--space-6);
+}
 .practice-heading {
   display: flex;
-  gap: 32px;
+  gap: var(--space-3);
   justify-content: space-between;
-  align-items: end;
-  margin-bottom: 24px;
+  align-items: center;
+  margin-bottom: var(--space-3);
 }
 .practice-heading h1 {
-  font-size: 36px;
-  margin-top: 12px;
+  font-size: clamp(28px, 3vw, 36px);
+}
+.practice-guide {
+  font-size: 14px;
+  color: var(--vp-c-text-2);
+}
+.practice-guide ol {
+  list-style: decimal;
+  padding-left: var(--space-6);
+  line-height: 1.8;
+}
+.practice-guide summary,
+.source-details summary {
+  width: fit-content;
+  align-content: center;
+  min-height: 44px;
+  color: var(--vp-c-brand-1);
+}
+.practice-guide-links {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--space-6);
+}
+.practice-guide-links a {
+  align-content: center;
+  min-height: 44px;
+  color: var(--vp-c-brand-1);
 }
 .practice-filters {
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) 140px 140px 80px;
-  gap: 24px;
-  padding: 16px 0;
+  grid-template-columns: minmax(0, 1.6fr) repeat(2, minmax(0, 1fr)) auto;
+  gap: var(--space-4);
+  padding: var(--space-2) 0;
   border-top: 1px solid var(--vp-c-divider);
   border-bottom: 1px solid var(--vp-c-divider);
-  margin-bottom: 24px;
+  margin-bottom: var(--space-4);
 }
 .practice-filters label {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--vp-c-text-2);
   min-width: 0;
 }
 .practice-filters select {
   display: block;
-  margin-top: 8px;
+  margin-top: var(--space-1);
   height: 44px;
   width: 100%;
   font-size: 14px;
@@ -1240,20 +1258,12 @@ textarea::placeholder {
   padding-bottom: 12px;
   text-align: right;
 }
-.practice-workspace {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 240px;
-  gap: 48px;
-}
-.question-panel {
-  min-width: 0;
-}
 .question-meta {
   display: flex;
   gap: 12px;
   align-items: center;
-  margin-bottom: 24px;
-  font-size: 12px;
+  margin-bottom: var(--space-2);
+  font-size: 13px;
   color: var(--vp-c-text-2);
 }
 .question-id {
@@ -1271,10 +1281,12 @@ textarea::placeholder {
   font-weight: 600;
   line-height: 1.55;
   color: var(--study-ink);
-  margin: 12px 0 24px;
+  margin: var(--space-2) 0;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
 }
 .answer-draft {
-  margin-top: 32px;
+  margin-top: var(--space-3);
 }
 .draft-heading {
   display: flex;
@@ -1380,47 +1392,6 @@ textarea::placeholder {
 .question-pagination > span {
   font-size: 12px;
   color: var(--vp-c-text-2);
-}
-.practice-rail {
-  border-left: 1px solid var(--vp-c-divider);
-  padding-left: 32px;
-  align-self: start;
-  position: sticky;
-  top: calc(var(--study-header) + 32px);
-}
-.practice-rail ol {
-  list-style: none;
-  padding: 0;
-  margin: 28px 0;
-}
-.practice-rail li {
-  display: grid;
-  grid-template-columns: 24px 1fr;
-  gap: 12px;
-  margin: 24px 0;
-}
-.practice-rail li span {
-  color: var(--study-accent);
-  font-size: 11px;
-  padding-top: 4px;
-}
-.practice-rail strong {
-  font-family: var(--study-display);
-  font-size: 20px;
-  font-weight: 600;
-}
-.practice-rail li p {
-  grid-column: 2;
-  font-size: 13px;
-  color: var(--vp-c-text-2);
-  line-height: 1.8;
-}
-.practice-rail > a {
-  display: block;
-  min-height: 44px;
-  margin-top: 8px;
-  font-size: 13px;
-  color: var(--vp-c-brand-1);
 }
 .status-error {
   color: var(--study-accent);
@@ -1618,13 +1589,6 @@ textarea::placeholder {
   .site-footer {
     margin: 0 var(--page-gutter);
   }
-  .hero-copy h1 {
-    font-size: 64px;
-  }
-  .practice-workspace {
-    gap: 48px;
-    grid-template-columns: minmax(0, 1fr) 220px;
-  }
 }
 @media (max-width: 959px) {
   .desktop-nav {
@@ -1641,15 +1605,8 @@ textarea::placeholder {
     padding: 0;
     margin: 0;
   }
-  .home-hero {
-    gap: 32px;
-    grid-template-columns: 1fr 1fr;
-  }
   .learning-outline {
     padding: 20px;
-  }
-  .hero-copy h1 {
-    font-size: 54px;
   }
   .document-workspace {
     grid-template-columns: minmax(0, 1fr);
@@ -1659,25 +1616,10 @@ textarea::placeholder {
   }
   .library-rows > a {
     grid-template-columns: 20px minmax(0, 1fr) 16px;
-    gap: 12px;
+    gap: var(--space-1) var(--space-3);
   }
-  .library-rows p,
-  .source-label {
+  .library-rows .source-label {
     grid-column: 2;
-  }
-  .library-rows > a > span:last-child {
-    grid-column: 3;
-    grid-row: 1;
-  }
-  .library-row-labels {
-    display: none;
-  }
-  .practice-workspace {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .practice-rail {
-    position: static;
-    display: none;
   }
   .flow-intro {
     display: block;
@@ -1709,10 +1651,6 @@ textarea::placeholder {
   .site-brand > span {
     font-size: 15px;
   }
-  .site-brand small {
-    font-size: 8px;
-    letter-spacing: 0.1em;
-  }
   .desktop-nav {
     display: none;
   }
@@ -1740,15 +1678,6 @@ textarea::placeholder {
     margin-top: 32px;
     padding: 20px;
   }
-  .hero-copy h1 {
-    font-size: clamp(38px, 10.8vw, 62px);
-    margin: 20px 0;
-    line-height: 1.45;
-  }
-  .hero-copy .eyebrow {
-    font-size: 9px;
-    letter-spacing: 0.045em;
-  }
   .home-actions {
     gap: 4px 16px;
   }
@@ -1758,7 +1687,6 @@ textarea::placeholder {
   }
   .home-actions .text-link {
     gap: 6px;
-    font-size: 13px;
   }
   .home-shortcuts,
   .preparation-group {
@@ -1799,17 +1727,6 @@ textarea::placeholder {
   }
   .library-section {
     margin-top: 20px;
-  }
-  .library-rows > a {
-    gap: 12px;
-    grid-template-columns: 20px minmax(0, 1fr) 16px;
-    padding: 20px 0;
-  }
-  .library-rows h4 {
-    font-size: 16px;
-  }
-  .library-rows p {
-    font-size: 12px;
   }
   .library-note {
     padding: 20px;
@@ -1868,17 +1785,17 @@ textarea::placeholder {
   }
   .reader-frame {
     display: block;
-    padding: 24px var(--page-gutter) 64px;
+    padding: var(--space-2) var(--page-gutter) 64px;
   }
 
   .reader-tools {
     margin-bottom: 12px;
     gap: 8px;
-    font-size: 10px;
-    padding-bottom: 8px;
+    font-size: 12px;
+    padding-bottom: var(--space-1);
   }
   .reader-tools .text-button {
-    font-size: 12px;
+    font-size: 13px;
     gap: 6px;
   }
   .reader-actions {
@@ -1893,13 +1810,13 @@ textarea::placeholder {
     line-height: 1.9;
   }
   .vp-doc h1 {
-    font-size: 30px;
-    margin-bottom: 24px;
+    font-size: 28px;
+    margin-bottom: var(--space-4);
   }
   .vp-doc h2 {
     font-size: 25px;
-    margin-top: 40px;
-    padding-top: 20px;
+    margin-top: var(--space-6);
+    padding-top: var(--space-3);
   }
   .vp-doc h3 {
     font-size: 20px;
@@ -1938,39 +1855,11 @@ textarea::placeholder {
     flex-wrap: wrap;
     font-size: 12px;
   }
-  .practice-heading {
-    display: flex;
-    align-items: end;
-    gap: 12px;
-    margin-bottom: 16px;
-  }
-  .practice-heading h1 {
-    font-size: 36px;
-  }
-  .practice-heading .text-link {
-    margin-top: 16px;
-    font-size: 12px;
-  }
-  .practice-filters {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
-    margin-bottom: 32px;
-  }
-  .practice-filters label:first-child {
-    grid-column: span 2;
-  }
   .question-count {
-    grid-column: span 2;
-    text-align: left;
-    padding: 0;
-  }
-  .practice-filters select {
-    font-size: 13px;
+    display: none;
   }
   .question-meta {
-    margin-bottom: 16px;
     gap: 8px;
-    font-size: 12px;
   }
   .question-id {
     font-size: 25px;
@@ -1978,14 +1867,9 @@ textarea::placeholder {
   .question-title {
     font-size: 24px;
     line-height: 1.6;
-    margin-top: 12px;
-    margin-bottom: 24px;
   }
   .draft-heading span {
     font-size: 12px;
-  }
-  .answer-draft {
-    margin-top: 24px;
   }
   .answer-draft textarea {
     padding: 16px;
@@ -2048,14 +1932,8 @@ textarea::placeholder {
     padding-right: 8px;
     gap: 8px;
   }
-  .site-brand small {
-    display: none;
-  }
   .site-brand > span {
     font-size: 14px;
-  }
-  .hero-copy h1 {
-    font-size: 37px;
   }
   .project-page .document-tabs {
     gap: 10px;
@@ -2144,28 +2022,12 @@ textarea::placeholder {
 }
 
 @media (max-width: 767px) {
-  .practice-heading h1 {
-    font-size: 28px;
-    margin-top: 12px;
-  }
-  .practice-heading .text-link {
-    margin-top: 8px;
-  }
   .practice-filters {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px 8px;
-    padding: 12px 0;
-    margin-bottom: 24px;
-  }
-  .practice-filters label:first-child {
-    grid-column: 1;
+    gap: var(--space-2);
   }
   .practice-filters select {
-    padding: 8px 20px 8px 8px;
-    font-size: 12px;
-  }
-  .question-count {
-    display: none;
+    padding: 8px 4px;
   }
   .library-page .page-heading h1 {
     font-size: 32px;

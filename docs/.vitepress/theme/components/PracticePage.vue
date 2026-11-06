@@ -171,10 +171,7 @@ onUnmounted(() => {
 <template>
   <div class="practice-page work-page">
     <header class="practice-heading">
-      <div>
-        <p class="eyebrow">CLOSED BOOK / 闭卷练习</p>
-        <h1>闭卷练习</h1>
-      </div>
+      <h1>闭卷练习</h1>
       <a class="text-link" :href="withBase('/byte-agent/question-bank')"
         >← 回题库浏览</a
       >
@@ -211,11 +208,11 @@ onUnmounted(() => {
     <section v-if="invalid" class="empty-state">
       <h2>没有这个题号。</h2>
       <p>题号 {{ selected }} 不在 Q001 至 Q360 范围内。</p>
-      <a :href="withBase('/byte-agent/question-bank')">回题库选择题目 ↗</a>
+      <a :href="withBase('/byte-agent/question-bank')">回题库选择题目 →</a>
     </section>
     <section v-else-if="!filtered.length" class="empty-state">
       <h2>这个组合还没有题目。</h2>
-      <button class="text-button" @click="reset">重置筛选 ↗</button>
+      <button class="text-button" @click="reset">重置筛选</button>
     </section>
     <div v-else class="practice-workspace">
       <div class="question-panel">
@@ -242,8 +239,20 @@ onUnmounted(() => {
         <div v-if="error" role="alert" class="status-error">
           {{ error }}<button @click="load(selected)">重新加载</button>
         </div>
-        <template v-if="question"
-          ><div class="answer-draft">
+        <template v-if="question">
+          <details class="practice-guide">
+            <summary>回答框架</summary>
+            <ol>
+              <li><strong>结论</strong>　先回答问题本身。</li>
+              <li><strong>依据</strong>　给出机制、取舍或真实实现。</li>
+              <li><strong>边界</strong>　说明失败条件与证据范围。</li>
+            </ol>
+            <div class="practice-guide-links">
+              <a :href="withBase('/reading-path')">回到路线补读 →</a>
+              <a :href="withBase('/notes/project-defense')">核对项目证据 →</a>
+            </div>
+          </details>
+          <div class="answer-draft">
             <div class="draft-heading">
               <label for="answer-draft">用自己的话回答</label
               ><span
@@ -278,7 +287,6 @@ onUnmounted(() => {
               @click="showAnswer = !showAnswer"
             >
               {{ showAnswer ? "收起解析" : "我答完了，对照解析" }}
-              <span>↗</span>
             </button>
           </div>
           <div
@@ -287,12 +295,12 @@ onUnmounted(() => {
             v-html="question.hints"
           />
           <section v-if="showAnswer" class="answer-panel">
-            <p class="eyebrow">REFLECT / 对照与回读</p>
+            <p class="eyebrow">对照解析</p>
             <div class="vp-doc" v-html="question.answer" />
             <a
               class="text-link"
               :href="withBase('/byte-agent/analysis#' + question.anchor)"
-              >在完整解析中阅读 ↗</a
+              >在完整解析中阅读 →</a
             >
           </section>
           <fieldset class="self-rating">
@@ -305,8 +313,8 @@ onUnmounted(() => {
             >
               {{ value }}
             </button>
-          </fieldset></template
-        >
+          </fieldset>
+        </template>
         <nav class="question-pagination" aria-label="切换题目">
           <button
             :disabled="position <= 0"
@@ -322,28 +330,6 @@ onUnmounted(() => {
           </button>
         </nav>
       </div>
-      <aside class="practice-rail">
-        <p class="eyebrow">A WAY TO ANSWER / 回答框架</p>
-        <ol>
-          <li>
-            <span>01</span><strong>结论</strong>
-            <p>先回答问题本身。</p>
-          </li>
-          <li>
-            <span>02</span><strong>依据</strong>
-            <p>给出机制、取舍或真实实现。</p>
-          </li>
-          <li>
-            <span>03</span><strong>边界</strong>
-            <p>说明失败条件与证据范围。</p>
-          </li>
-        </ol>
-        <p class="rail-note">
-          查看解析不会自动改变自评。<br />掌握程度由自己判断。
-        </p>
-        <a :href="withBase('/reading-path')">回到路线补读 ↗</a
-        ><a :href="withBase('/notes/project-defense')">核对项目证据 ↗</a>
-      </aside>
     </div>
   </div>
 </template>

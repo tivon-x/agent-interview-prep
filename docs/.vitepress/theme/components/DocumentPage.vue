@@ -133,11 +133,6 @@ onUnmounted(() => {
     :data-view="view"
   >
     <header class="page-heading">
-      <p class="eyebrow">
-        {{
-          kind === "route" ? "THE PATH / 学习路线" : "FIELD NOTES / 项目笔记"
-        }}
-      </p>
       <h1>{{ kind === "route" ? "学习路线" : "项目笔记" }}</h1>
       <p>
         {{
@@ -230,7 +225,7 @@ onUnmounted(() => {
             每次深入一个主材料，其他资料用于回查疑点。没讲清的主题，下一次接着读。
           </p>
           <a :href="withBase('/byte-agent/practice?q=Q001')"
-            >用题目检验理解 ↗</a
+            >用题目检验理解 →</a
           >
         </template>
         <template v-else>
@@ -238,7 +233,7 @@ onUnmounted(() => {
           <h2>把取舍讲清。</h2>
           <nav aria-label="关联原理与面试题">
             <a v-for="link in principles" :key="link.href" :href="link.href"
-              >{{ link.title }} ↗</a
+              >{{ link.title }} →</a
             >
           </nav>
           <p>
@@ -251,7 +246,7 @@ onUnmounted(() => {
     <div class="document-return">
       <a :href="withBase('/library')">← 浏览资料库</a
       ><a :href="withBase('/byte-agent/practice?q=Q001')"
-        >合上资料，练习表达 ↗</a
+        >合上资料，练习表达 →</a
       >
     </div>
   </div>

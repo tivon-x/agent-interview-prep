@@ -302,7 +302,7 @@ onUnmounted(() => {
         ><svg viewBox="0 0 28 32" aria-hidden="true">
           <path d="M5 3v26M14 3v26M23 3v26M5 7h18M5 16h18M5 25h18" />
           <circle cx="14" cy="16" r="3" /></svg
-        ><span>面试复习库<small>THE STUDY EDITION</small></span></a
+        ><span>面试复习库</span></a
       >
       <nav class="desktop-nav" aria-label="主导航">
         <a
@@ -354,11 +354,11 @@ onUnmounted(() => {
         :kind="kind"
       />
       <section v-else-if="kind === '404'" class="not-found work-page">
-        <p class="eyebrow">404 / 路线之外</p>
+        <p class="eyebrow">404 / 页面未找到</p>
         <h1>这一页，<br />还没有被写下。</h1>
         <p>页面不存在，或资料快照未收录该章节。</p>
         <a class="primary-button" :href="href('/library')"
-          >回到资料库 <span>↗</span></a
+          >回到资料库 <span>→</span></a
         ><button class="text-button" @click="search">搜索文档</button
         ><a :href="href('/')">回首页</a
         ><a :href="href('/sources')">查看来源与快照范围</a>
@@ -370,7 +370,7 @@ onUnmounted(() => {
             <ChapterNavigation :key="cleanPath" :items="chapterNodes" :current="cleanPath"
               :numbered="!chapterNodes.some((item) => item.children)" />
           </nav>
-          <a class="rail-source" :href="href('/sources')">资料出处与快照范围 ↗</a>
+          <a class="rail-source" :href="href('/sources')">资料出处与快照范围 →</a>
         </aside>
         <div class="reader-column">
           <div class="reader-tools">
@@ -412,7 +412,7 @@ onUnmounted(() => {
             ><a
               class="primary-button"
               :href="href('/byte-agent/practice?q=' + (resumeQuestion || 'Q001'))"
-              >{{ resumeQuestion ? '继续练习' : '进入闭卷练习' }} ↗</a
+              >{{ resumeQuestion ? '继续练习' : '进入闭卷练习' }} →</a
             >
           </div>
           <Content class="vp-doc reader-body" />
@@ -425,7 +425,7 @@ onUnmounted(() => {
           </nav>
           <div class="reading-return">
             <a :href="href('/reading-path')">← 回到学习路线</a
-            ><a :href="href('/notes/project-defense')">联系自己的项目 ↗</a>
+            ><a :href="href('/notes/project-defense')">联系自己的项目 →</a>
           </div>
         </div>
         <aside class="outline-rail" aria-label="本页目录">
@@ -473,7 +473,7 @@ onUnmounted(() => {
           :href="href(item.link)"
           :aria-current="activeNav === item.link ? 'page' : undefined"
           @click="mobileMenu.close()"
-          >{{ item.text }} ↗</a
+          >{{ item.text }} →</a
         ><a :href="href('/sources')" @click="mobileMenu.close()">资料来源</a>
       </nav>
       <button class="text-button" @click="search">搜索文档</button>

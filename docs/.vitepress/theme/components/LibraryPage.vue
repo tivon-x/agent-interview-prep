@@ -84,7 +84,7 @@ onUnmounted(() => {
   <div class="library-page work-page">
     <header class="page-heading">
       <h1>资料库</h1>
-      <a class="text-link" :href="withBase('/reading-path')">学习路线 ↗</a>
+      <a class="text-link" :href="withBase('/reading-path')">学习路线 →</a>
     </header>
     <div class="library-workspace">
       <div class="library-content">
@@ -109,27 +109,29 @@ onUnmounted(() => {
         </div>
         <div v-if="currentSource" class="library-topic-heading">
           <h2>{{ currentSource.title }}</h2>
-          <a v-if="currentSource.entry" class="text-link" :href="withBase(currentSource.entry)">原资料总览 ↗</a>
+          <a v-if="currentSource.entry" class="text-link" :href="withBase(currentSource.entry)">原资料总览 →</a>
         </div>
         <div v-if="!filtered.length" class="empty-state">
           <h3>没有找到匹配的章节。</h3>
           <p>{{ currentSource ? '当前只搜索所选来源。可以扩大范围或清空筛选。' : '换一个关键词，或清空筛选。' }}</p>
           <button v-if="currentSource" class="text-button" @click="update('', topic, query)">搜索全部来源</button>
-          <button class="text-button" @click="update(selected, '', '')">清空筛选 ↗</button>
+          <button class="text-button" @click="update(selected, '', '')">清空筛选</button>
         </div>
         <section v-for="section in sections" :key="section.title" class="library-section">
           <div class="library-section-heading"><h3>{{ section.title }}</h3><span>{{ section.items.length }} 个入口</span></div>
-          <div v-if="!browsingSources" class="library-row-labels" aria-hidden="true"><span>目录 / 文章</span><span>关注内容</span><span>来源</span></div>
-          <div class="library-rows" :class="{ 'source-overview': browsingSources }">
+          <div class="library-rows">
             <a v-for="(item, i) in section.items" :key="item.url" :href="withBase(item.url)">
               <span class="row-number">{{ String(i + 1).padStart(2, '0') }}</span>
-              <h4>{{ item.title }}</h4>
-              <p>{{ item.description || (item.collection ? '按资料原有目录阅读。' : '打开文章，查看完整内容。') }}</p>
-              <span v-if="item.source" class="source-label">{{ item.source }}</span><span aria-hidden="true">↗</span>
+              <div>
+                <h4>{{ item.title }}</h4>
+                <p v-if="item.description">{{ item.description }}</p>
+              </div>
+              <span v-if="item.source && !currentSource" class="source-label">{{ item.source }}</span>
+              <span aria-hidden="true">→</span>
             </a>
           </div>
         </section>
-        <div class="library-note"><a :href="withBase('/sources')">资料来源、版权与快照范围 ↗</a></div>
+        <div class="library-note"><a :href="withBase('/sources')">资料来源、版权与快照范围 →</a></div>
       </div>
     </div>
   </div>

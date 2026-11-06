@@ -303,7 +303,7 @@ await check(
     await page.getByLabel("按专题筛选").selectOption("RAG 与检索");
     await page.getByLabel("筛选资料").fill("no-such-material");
     await page.getByRole("heading", { name: "没有找到匹配的章节。" }).waitFor();
-    await click("清空筛选 ↗");
+    await click("清空筛选");
     assert.ok(await page.locator(".library-rows a").count());
     await page.getByLabel("按专题筛选").selectOption("RAG 与检索");
     await page.reload();
@@ -445,7 +445,7 @@ await check(
       "自测草稿：结论、依据、边界 / <script>literal</script>",
     );
     await click("能讲清楚");
-    await click("我答完了，对照解析 ↗");
+    await click("我答完了，对照解析");
     await page.locator(".answer-panel").waitFor();
     assert.match(await page.locator(".answer-panel").innerText(), /参考回答/);
     await click("下一题 →");
@@ -513,7 +513,7 @@ await check(
         .getByRole("heading", { name: "这个组合还没有题目。" })
         .isVisible(),
     );
-    await click("重置筛选 ↗");
+    await click("重置筛选");
     await go("byte-agent/practice?q=Q999");
     await page.getByRole("heading", { name: "没有这个题号。" }).waitFor();
   },
@@ -540,7 +540,7 @@ await check("all question group edges and Q180/Q360 render", async () => {
     await draft(page).waitFor();
     assert.equal(await page.locator(".question-id").innerText(), id);
     assert.equal(await page.locator(".answer-panel").count(), 0);
-    await click("我答完了，对照解析 ↗");
+    await click("我答完了，对照解析");
     assert.match(await page.locator(".answer-panel").innerText(), /参考回答/);
     if (id === "Q360")
       assert.ok(
@@ -745,7 +745,7 @@ await check(
     await trigger.click();
     await page
       .locator("dialog[open]")
-      .getByRole("link", { name: "学习路线 ↗" })
+      .getByRole("link", { name: "学习路线 →" })
       .click();
     await page.locator(".route-page").waitFor();
     await page.locator(".route-stations a").first().click();
@@ -761,7 +761,7 @@ await check(
     await go("byte-agent/practice?q=Q180");
     await draft(page).waitFor();
     await draft(page).fill("手机自测");
-    await click("我答完了，对照解析 ↗");
+    await click("我答完了，对照解析");
     assert.ok(await page.locator(".answer-panel").isVisible());
     await page.reload();
     await expectDraft(page, "手机自测");
@@ -872,7 +872,7 @@ if (!quick) {
           await p.getByRole("button", { name: "← 上一题" }).click();
           await expectDraft(p, name + " 草稿");
           await p
-            .getByRole("button", { name: "我答完了，对照解析 ↗" })
+            .getByRole("button", { name: "我答完了，对照解析" })
             .click();
           await p.locator(".answer-panel").waitFor();
           await snapshot(name + "-practice", p);
